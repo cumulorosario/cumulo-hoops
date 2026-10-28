@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reloj 24 · Cúmulo Hoops</title>
+<style>
+  :root { --mono: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  * { font-variant-numeric: tabular-nums; box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: #fff; overflow: hidden; font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+  .wrap { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .arrows { display: flex; align-items: center; height: 10vh; }
+  .arrow { width: 0; height: 0; border-top: 3.5vh solid transparent; border-bottom: 3.5vh solid transparent; opacity: .1; margin: 0 3vw; }
+  #arrow-home { border-right: 5vh solid var(--hc, #fff); }
+  #arrow-away { border-left: 5vh solid var(--ac, #fff); }
+  .arrow.on { opacity: 1; }
+  .tag { font-size: 5vh; font-weight: 800; letter-spacing: .15em; min-width: 20vw; text-align: center; }
+  .shot { font-family: var(--mono); font-weight: 700; font-size: 40vw; line-height: 1; color: #ff2a2a; text-shadow: 0 0 4vw; }
+  .shot.zero { animation: blink .5s steps(2) infinite; }
+  .game { font-family: var(--mono); font-size: 7vw; color: #fbbf24; line-height: 1.1; }
+  .game span { font-size: .5em; color: #8090a8; margin-right: 2vw; }
+  body.solo .game, body.solo .arrows { display: none; }
+  body.solo .shot { font-size: 46vw; }
+  .conn { position: fixed; top: 1vh; right: 1vw; background: #7f1d1d; font-weight: 800; font-size: 3vh; padding: .5vh 1vw; border-radius: .5vw; display: none; }
+  .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.85); color: #fff; border: 0; font-size: 3.5vw; font-weight: 700; cursor: pointer; }
+  @keyframes blink { 50% { opacity: .15; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="arrows"><div class="arrow" id="arrow-home"></div><div class="tag" id="tag"></div><div class="arrow" id="arrow-away"></div></div>
+  <div class="shot" id="shot">24</div>
+  <div class="game"><span id="period">Q1</span><b id="clock">8:00</b></div>
+</div>
+<div class="conn" id="conn">SIN CONEXIÓN</div>
+<button class="overlay" id="overlay">Tocar o presionar OK para activar<br>sonido y pantalla completa</button>
+<script src="/js/common.js"></script>
+<script>
+(function () {
+  var H = window.Hoops, S = null;
+  function $(id) { return document.getElementById(id); }
+  if (/solo/.test(location.search)) document.body.className = 'solo';
+  if (/mudo/.test(location.search)) H.checkBuzzer = function () {};
+
+  function render(s) {
+    S = s;
+    document.documentElement.style.setProperty('--hc', s.home.color);
+    document.documentElement.style.setProperty('--ac', s.away.color);
+    $('arrow-home').className = 'arrow' + (s.possession === 'home' ? ' on' : '');
+    $('arrow-away').className = 'arrow' + (s.possession === 'away' ? ' on' : '');
+    var t = s.possession ? s[s.possession] : null;
+    $('tag').textContent = t ? t.short : '';
+    $('tag').style.color = t ? t.color : '#fff';
+    $('period').textContent = H.periodLabel(s);
+    H.checkBuzzer(s);
+    tick();
+  }
+  function tick() {
+    if (!S) return;
+    var sh = H.rem(S.shot), vis = H.shotVisible(S);
+    $('shot').innerHTML = vis ? H.fmtShot(sh) : '&nbsp;';
+    $('shot').className = 'shot' + (vis && sh <= 0 ? ' zero' : '');
+    $('clock').textContent = H.fmtGame(H.rem(S.clock));
+  }
+  setInterval(tick, 50);
+  H.setupOverlay('overlay');
+  H.connect(render, function (ok) { $('conn').style.display = ok ? 'none' : 'block'; });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conectar · Cúmulo Hoops</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #060912; color: #e6ebf4; font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+         display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+  h1 { margin: 8px 0 4px; font-size: 28px; }
+  p.sub { color: #8391a8; margin: 0 0 22px; text-align: center; max-width: 620px; line-height: 1.45; }
+  .cards { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; width: 100%; }
+  .card { width: 290px; max-width: 100%; padding: 18px; border-radius: 16px; background: #0d1322; border: 1px solid #1f2a40; text-align: center; }
+  .card b { display: block; font-size: 19px; }
+  .card span { color: #8391a8; font-size: 13px; }
+  .qr { background: #fff; border-radius: 12px; padding: 10px; margin: 14px auto 10px; width: 210px; height: 210px; }
+  .qr img, .qr svg { width: 100%; height: 100%; display: block; }
+  .url { font-family: ui-monospace, Consolas, monospace; color: #fbbf24; font-size: 13px; word-break: break-all; }
+  .card a.go { display: inline-block; margin-top: 12px; padding: 9px 16px; border-radius: 10px; background: #fbbf24; color: #111; font-weight: 800; text-decoration: none; }
+  .warn { background: #2a1d07; border: 1px solid #78350f; color: #fde68a; border-radius: 12px; padding: 12px 16px; max-width: 620px; margin-bottom: 18px; line-height: 1.45; display: none; }
+  .ips { margin: 0 0 18px; display: none; }
+  .ips button { font: inherit; color: #e6ebf4; background: #121a2c; border: 1px solid #1f2a40; border-radius: 8px; padding: 6px 10px; margin: 3px; cursor: pointer; }
+  .ips button.on { background: #fbbf24; color: #111; border-color: #fbbf24; font-weight: 700; }
+  .steps { max-width: 620px; color: #aab4c5; font-size: 14px; line-height: 1.6; margin-top: 26px; }
+  .steps b { color: #e6ebf4; }
+</style>
+</head>
+<body>
+  <h1>🏀 Cúmulo Hoops</h1>
+  <p class="sub">Conectá cada dispositivo a la <b>misma red</b> que este servidor (el hotspot del celular o el WiFi del club) y escaneá el código con su cámara, o escribí la dirección en su navegador.</p>
+  <div class="warn" id="warn"></div>
+  <div class="ips" id="ips"></div>
+  <div class="cards">
+    <div class="card"><b>Mesa de control</b><span>Celular, tablet o PC del operador</span><div class="qr" id="q-op"></div><div class="url" id="u-op"></div><a class="go" href="/operador">Abrir aquí</a></div>
+    <div class="card"><b>Tablero principal</b><span>TV grande de la cancha</span><div class="qr" id="q-tab"></div><div class="url" id="u-tab"></div><a class="go" href="/tablero">Abrir aquí</a></div>
+    <div class="card"><b>Reloj de 24</b><span>TVs chicas detrás de los aros</span><div class="qr" id="q-pos"></div><div class="url" id="u-pos"></div><a class="go" href="/posesion">Abrir aquí</a></div>
+  </div>
+  <div class="steps">
+    <b>En las TVs:</b> abrí el navegador, escribí la dirección del tablero o del reloj de 24 y presioná OK una vez para activar la chicharra y la pantalla completa.<br>
+    <b>Varios operadores:</b> se puede abrir la mesa de control en más de un dispositivo a la vez; todos ven y cargan lo mismo.
+  </div>
+  <script src="/js/vendor/qrcode.js"></script>
+  <script>
+  (function () {
+    var host = location.hostname, port = location.port || '80', chosen = null;
+    var isLocal = host === 'localhost' || host === '127.0.0.1';
+    function $(id) { return document.getElementById(id); }
+    function draw(base) {
+      var items = [['op', '/operador'], ['tab', '/tablero'], ['pos', '/posesion']];
+      for (var i = 0; i < items.length; i++) {
+        var url = base + items[i][1];
+        $('u-' + items[i][0]).textContent = url;
+        var qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+        $('q-' + items[i][0]).innerHTML = qr.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
+      }
+    }
+    function load() {
+      fetch('/api/info').then(function (r) { return r.json(); }).then(function (info) {
+        var ips = info.ips || [];
+        if (!isLocal) { draw(location.protocol + '//' + location.host); return; }
+        if (!ips.length) {
+          $('warn').style.display = 'block';
+          $('warn').innerHTML = '⚠ Todavía no se detectó la IP de este equipo en la red. Conectá otro dispositivo al hotspot y abrí en él la dirección de la <b>puerta de enlace</b> de esa red con <b>:' + info.port + '</b> al final (ej. <b>http://192.168.43.1:' + info.port + '</b>). Apenas entre, esta página se actualiza sola.';
+          draw('http://localhost:' + info.port);
+          setTimeout(load, 3000);
+          return;
+        }
+        $('warn').style.display = 'none';
+        if (!chosen || ips.indexOf(chosen) < 0) chosen = ips[0];
+        if (ips.length > 1) {
+          $('ips').style.display = 'block';
+          $('ips').innerHTML = 'Red: ' + ips.map(function (ip) { return '<button class="' + (ip === chosen ? 'on' : '') + '" data-ip="' + ip + '">' + ip + '</button>'; }).join('');
+        }
+        draw('http://' + chosen + ':' + info.port);
+      }).catch(function () { setTimeout(load, 3000); });
+    }
+    $('ips').addEventListener('click', function (e) { var ip = e.target.getAttribute('data-ip'); if (ip) { chosen = ip; load(); } });
+    load();
+  })();
+  </script>
+</body>
+</html>

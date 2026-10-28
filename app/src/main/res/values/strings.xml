@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cúmulo Hoops</string>
+    <string name="hotspot">Hotspot</string>
+    <string name="battery">Batería</string>
+    <string name="stop">Detener</string>
+    <string name="start">Iniciar</string>
+    <string name="status_starting">Iniciando servidor…</string>
+    <string name="status_stopped">Servidor detenido</string>
+    <string name="status_running">● En vivo · %1$s · %2$d pantallas</string>
+    <string name="status_noip">● En vivo · activá el hotspot o conectate a un WiFi</string>
+    <string name="stopped_hint">Tocá Iniciar para volver a encender el tablero.</string>
+    <string name="channel_name">Servidor del tablero</string>
+    <string name="notif_title">Tablero en vivo</string>
+    <string name="notif_starting">Iniciando…</string>
+    <string name="notif_running">TVs y operadores: %1$s</string>
+    <string name="notif_running_noip">Activá el hotspot o conectate a un WiFi</string>
+    <string name="error_port">No se pudo abrir el puerto %1$d. ¿Hay otra app usándolo?</string>
+</resources>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Operador · Cúmulo Hoops</title>
+<link rel="stylesheet" href="/css/operador.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><span class="logo">CI</span><div><b>Cúmulo Hoops</b><small>Mesa de control</small></div></div>
+  <div class="conn" id="conn"><i></i><span>Conectando…</span></div>
+  <div class="urls" id="urls"></div>
+  <div class="bar-actions">
+    <a class="btn" href="/" target="_blank">📱 Conectar</a>
+    <button data-a="undo" title="Ctrl+Z">↶ Deshacer</button>
+    <button data-a="buzzer" class="warn" title="B">📢 Chicharra</button>
+    <button id="open-config">⚙ Configurar</button>
+  </div>
+</header>
+
+<main class="grid">
+  <section class="team" id="home" data-team="home"></section>
+
+  <section class="center">
+    <div class="c-title" id="title"></div>
+    <div class="periods" id="periods">
+      <button data-a="period" data-n="1">Q1</button>
+      <button data-a="period" data-n="2">Q2</button>
+      <button data-a="period" data-n="3">Q3</button>
+      <button data-a="period" data-n="4">Q4</button>
+      <button data-a="period" data-n="5" id="btn-ot">OT</button>
+    </div>
+
+    <div class="clock-box">
+      <div class="period-label" id="period-label">CUARTO 1</div>
+      <div class="clock" id="clock">8:00</div>
+    </div>
+    <button class="big-btn" id="btn-clock" data-a="clockToggle" title="Barra espaciadora">▶ INICIAR</button>
+    <div class="row5">
+      <button data-a="clockAdjust" data-ms="-10000">−10s</button>
+      <button data-a="clockAdjust" data-ms="-1000">−1s</button>
+      <button id="edit-clock" title="Fijar tiempo">✎</button>
+      <button data-a="clockAdjust" data-ms="1000">+1s</button>
+      <button data-a="clockAdjust" data-ms="10000">+10s</button>
+    </div>
+
+    <div class="shot-box">
+      <div><small>RELOJ DE TIRO</small><div class="shot" id="shot">24</div></div>
+      <div class="shot-btns">
+        <button data-a="shotReset" data-s="24" class="s24" title="R">24</button>
+        <button data-a="shotReset" data-s="14" class="s14" title="T">14</button>
+        <button data-a="shotToggle" id="btn-shot">▶</button>
+        <button data-a="shotAdjust" data-ms="-1000">−1</button>
+        <button data-a="shotAdjust" data-ms="1000">+1</button>
+      </div>
+    </div>
+
+    <div class="poss">
+      <button data-a="possession" data-team="home" id="poss-home">◀</button>
+      <button data-a="swapPossession" class="swap" title="P">⇄ Cambio + 24</button>
+      <button data-a="possession" data-team="away" id="poss-away">▶</button>
+    </div>
+
+    <div class="log"><div class="log-head">Registro del partido</div><ol id="log"></ol></div>
+    <div class="keys">Atajos: <kbd>Espacio</kbd> reloj · <kbd>R</kbd> 24 · <kbd>T</kbd> 14 · <kbd>P</kbd> cambio posesión · <kbd>B</kbd> chicharra · <kbd>Ctrl+Z</kbd> deshacer</div>
+  </section>
+
+  <section class="team" id="away" data-team="away"></section>
+</main>
+
+<dialog id="config">
+  <form id="config-form">
+    <h2>Configuración del partido</h2>
+    <label>Título / categoría<input name="title" maxlength="60"></label>
+    <div class="two">
+      <label>Minutos por cuarto<input name="periodMinutes" type="number" min="1" max="30" step="0.5"></label>
+      <label>Minutos de suplementario<input name="otMinutes" type="number" min="1" max="15" step="0.5"></label>
+    </div>
+    <div class="two">
+      <fieldset>
+        <legend>Local</legend>
+        <label>Nombre<input name="home_name" maxlength="60"></label>
+        <div class="two"><label>Sigla<input name="home_short" maxlength="4"></label><label>Color<input type="color" name="home_color"></label></div>
+        <label>Plantel <small>(un jugador por línea: número y nombre)</small><textarea name="home_roster" rows="10"></textarea></label>
+      </fieldset>
+      <fieldset>
+        <legend>Visitante</legend>
+        <label>Nombre<input name="away_name" maxlength="60"></label>
+        <div class="two"><label>Sigla<input name="away_short" maxlength="4"></label><label>Color<input type="color" name="away_color"></label></div>
+        <label>Plantel <small>(un jugador por línea: número y nombre)</small><textarea name="away_roster" rows="10"></textarea></label>
+      </fieldset>
+    </div>
+    <div class="dlg-actions">
+      <button type="button" id="new-game" class="danger">Nuevo partido</button>
+      <span></span>
+      <button type="button" id="cancel-config">Cancelar</button>
+      <button type="submit" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+<script src="/js/common.js"></script>
+<script src="/js/operador.js"></script>
+</body>
+</html>
