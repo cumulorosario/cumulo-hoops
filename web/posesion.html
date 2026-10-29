@@ -16,15 +16,17 @@
   #arrow-away { border-left: 5vh solid var(--ac, #fff); }
   .arrow.on { opacity: 1; }
   .tag { font-size: 5vh; font-weight: 800; letter-spacing: .15em; min-width: 20vw; text-align: center; }
-  .shot { font-family: var(--mono); font-weight: 700; font-size: min(36vw, 48vh); line-height: 1; color: #ff2a2a; text-shadow: 0 0 4vw; }
+  .shot { font-family: var(--mono); font-weight: 700; font-size: min(38vw, 56vh); line-height: 1; color: #ff2a2a; text-shadow: 0 0 4vw; }
   .shot.zero { animation: blink .5s steps(2) infinite; }
   .game { font-family: var(--mono); font-size: min(7vw, 11vh); color: #fbbf24; line-height: 1.1; }
   .game span { font-size: .5em; color: #8090a8; margin-right: 2vw; }
-  .brand { margin-top: 3vh; display: flex; justify-content: center; align-items: center; }
-  .brand span { font-size: min(3vh, 2vw); letter-spacing: .3em; color: #9aaccc; font-weight: 700; text-transform: uppercase; margin-right: 2vh; text-align: right; line-height: 1.4; }
-  .brand img { height: min(15vh, 12vw); width: auto; }
+  /* Marca arriba a la izquierda */
+  .brand { position: fixed; top: 2.5vh; left: 2.5vw; display: flex; align-items: center; gap: 1.6vh; }
+  .brand img { height: min(8vh, 6vw); width: auto; display: block; }
+  .brand i { width: 2px; height: min(6vh, 4.5vw); background: rgba(111,153,202,.45); }
+  .brand b { font-size: min(3.4vh, 2.4vw); font-weight: 800; color: #e8edf5; white-space: nowrap; }
   body.solo .game, body.solo .arrows { display: none; }
-  body.solo .shot { font-size: min(46vw, 64vh); }
+  body.solo .shot { font-size: min(46vw, 70vh); }
   .conn { position: fixed; top: 1vh; right: 1vw; background: #7f1d1d; font-weight: 800; font-size: 3vh; padding: .5vh 1vw; border-radius: .5vw; display: none; }
   .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.85); color: #fff; border: 0; font-size: 3.5vw; font-weight: 700; cursor: pointer; }
   @keyframes blink { 50% { opacity: .15; } }
@@ -35,8 +37,8 @@
   <div class="arrows"><div class="arrow" id="arrow-home"></div><div class="tag" id="tag"></div><div class="arrow" id="arrow-away"></div></div>
   <div class="shot" id="shot">24</div>
   <div class="game"><span id="period">Q1</span><b id="clock">8:00</b></div>
-  <div class="brand"><span>Desarrollado<br>por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div>
 </div>
+<div class="brand"><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"><i></i><b>Cúmulo Hoops</b></div>
 <div class="conn" id="conn">SIN CONEXIÓN</div>
 <button class="overlay" id="overlay">Tocar o presionar OK para activar<br>sonido y pantalla completa</button>
 <script src="/js/common.js"></script>
