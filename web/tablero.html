@@ -48,10 +48,10 @@
   .bottom { display: flex; margin-top: 2vh; height: 12vh; align-items: flex-start; }
   .oncourt { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; }
   #away-players { justify-content: flex-end; }
-  .brandbox { flex: none; width: 23vw; margin: 0 1vw; display: flex; align-items: center; justify-content: center;
-              background: rgba(111,153,202,.07); border: .12vw solid rgba(111,153,202,.28); border-radius: 1vw; padding: 1vh 1.2vw; }
-  .brandbox span { font-size: .8vw; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; text-align: right; line-height: 1.35; margin-right: 1vw; }
-  .brandbox img { height: 4.6vh; width: auto; display: block; }
+  .brandbox { margin-top: 4vh; display: flex; flex-direction: column; align-items: center; }
+  .brandbox span { font-size: 1.15vw; letter-spacing: .35em; color: #9aaccc; text-transform: uppercase; font-weight: 700; margin-bottom: 1.2vh; }
+  .brandbox img { width: 26vw; max-height: 17vh; object-fit: contain; display: block; }
+  .oncourt + .oncourt { margin-left: 1.5vw; }
   .chip { background: var(--panel); border: .12vw solid var(--line); border-radius: .6vw; padding: .5vh .7vw; margin: 0 .5vw .8vh 0;
           font-size: 1.35vw; display: flex; align-items: center; white-space: nowrap; }
   .chip b { color: var(--c); font-family: var(--mono); margin-right: .5vw; }
@@ -91,6 +91,7 @@
         <div class="arrow" id="arrow-away"></div>
       </div>
       <div class="shot-label">POSESIÓN</div>
+      <div class="brandbox"><span>Desarrollado por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div>
     </div>
     <div class="team" id="away">
       <div class="thead"><div class="crest" id="away-crest"></div><div class="tname" id="away-name"></div></div>
@@ -104,7 +105,6 @@
   </div>
   <div class="bottom">
     <div class="oncourt" id="home-players"></div>
-    <div class="brandbox"><span>Desarrollado<br>por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div>
     <div class="oncourt" id="away-players"></div>
   </div>
 </div>

@@ -148,8 +148,13 @@ a.btn { color: inherit; text-decoration: none; background: var(--panel2); border
   .keys { display: none; }
   .bar-actions > * { font-size: 12px; }
 }
-/* Celular: cada jugador en dos renglones, botones grandes para el pulgar */
+/* Columna angosta (celular, tablet o notebook): cada jugador en dos renglones, botones grandes */
+.team { container-type: inline-size; }
 @media (max-width: 560px) {
+  .bar .cb-brand small { display: none; }
+  .pl-head span:first-child { font-size: 11px; }
+}
+@container (max-width: 500px) {
   .pl { grid-template-columns: repeat(12, 1fr); gap: 5px; padding: 6px 4px; }
   .pl .pin { grid-column: 1 / span 2; justify-self: start; width: 38px; height: 38px; }
   .pl .photo-btn { grid-column: 3 / span 2; justify-self: start; }
@@ -159,8 +164,6 @@ a.btn { color: inherit; text-decoration: none; background: var(--panel2); border
   .pts { grid-column: 10 / span 1; }
   .pf { grid-column: 11 / span 2; }
   .pl > button:not(.pin):not(.pedit):not(.photo-btn) { grid-row: 2; grid-column: span 3; padding: 11px 0; font-size: 16px; }
-  .pl-head span:first-child { font-size: 11px; }
-  .bar .cb-brand small { display: none; }
 }
 
 /* edición de equipo y jugador */

@@ -83,7 +83,7 @@ class MainActivity : Activity() {
             setImageResource(R.drawable.cumulo_isotipo)
             contentDescription = "Cúmulo Ingeniería"
         }
-        bar.addView(logo, LinearLayout.LayoutParams(dp(28), dp(28)).apply { marginEnd = dp(8) })
+        bar.addView(logo, LinearLayout.LayoutParams(dp(36), dp(36)).apply { marginEnd = dp(10) })
         status = TextView(this).apply {
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
