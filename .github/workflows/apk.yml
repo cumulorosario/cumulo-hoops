@@ -24,8 +24,25 @@ jobs:
       - name: Tests del núcleo
         run: ./gradlew --no-daemon testDebugUnitTest
 
+      - name: Clave de firma privada
+        env:
+          KS: ${{ secrets.HOOPS_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/cumulo.jks"
+            echo "HOOPS_KEYSTORE_FILE=$RUNNER_TEMP/cumulo.jks" >> "$GITHUB_ENV"
+            echo "Firma: clave privada de Cúmulo Ingeniería"
+          else
+            echo "::warning::Faltan los secretos de firma: el APK se firma con la clave de pruebas pública"
+          fi
+
       - name: Compilar
-        run: ./gradlew --no-daemon assembleRelease
+        env:
+          HOOPS_KEYSTORE_PASSWORD: ${{ secrets.HOOPS_KEYSTORE_PASSWORD }}
+          HOOPS_KEY_PASSWORD: ${{ secrets.HOOPS_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon assembleRelease
+          rm -f "$RUNNER_TEMP/cumulo.jks"
 
       - name: Preparar APK
         run: cp app/build/outputs/apk/release/app-release.apk cumulo-hoops-0.2.${{ github.run_number }}.apk

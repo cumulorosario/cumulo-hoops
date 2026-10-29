@@ -20,14 +20,23 @@ android {
     }
 
     signingConfigs {
-        // Clave fija de pruebas (incluida en el repo) para que todas las versiones
-        // se puedan actualizar entre sí. Antes de publicar en Play Store hay que
-        // reemplazarla por una clave privada guardada como secreto.
+        // Clave de pruebas (incluida en el repo): solo para compilar en una computadora.
         create("pruebas") {
             storeFile = file("debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+        }
+        // Clave privada de Cúmulo Ingeniería: la carga GitHub Actions desde los secretos
+        // del repositorio (HOOPS_KEYSTORE_BASE64, HOOPS_KEYSTORE_PASSWORD, HOOPS_KEY_PASSWORD).
+        // Nunca se guarda en el repositorio.
+        System.getenv("HOOPS_KEYSTORE_FILE")?.let { path ->
+            create("cumulo") {
+                storeFile = file(path)
+                storePassword = System.getenv("HOOPS_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("HOOPS_KEY_ALIAS") ?: "cumulo"
+                keyPassword = System.getenv("HOOPS_KEY_PASSWORD")
+            }
         }
     }
 
@@ -37,7 +46,7 @@ android {
         }
         getByName("release") {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("pruebas")
+            signingConfig = signingConfigs.findByName("cumulo") ?: signingConfigs.getByName("pruebas")
         }
     }
 

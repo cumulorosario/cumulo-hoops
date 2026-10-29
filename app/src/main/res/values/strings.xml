@@ -18,4 +18,5 @@
     <string name="error_port">No se pudo abrir el puerto %1$d. ¿Hay otra app usándolo?</string>
     <string name="photo_chooser">Sacar o elegir una foto</string>
     <string name="share_title">Compartir estadísticas</string>
+    <string name="battery_hint">Entrá en Batería (o Ahorro de batería) y elegí \"Sin restricciones\"</string>
 </resources>

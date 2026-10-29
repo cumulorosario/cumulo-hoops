@@ -35,6 +35,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import java.io.File
 
 /**
@@ -314,12 +315,19 @@ class MainActivity : Activity() {
         }
     }
 
-    @SuppressLint("BatteryLife")
+    /**
+     * Abre la información de la app para elegir batería "Sin restricciones" (en Xiaomi:
+     * Ahorro de batería → Sin restricciones). No se usa el pedido directo de exención porque
+     * requiere un permiso sensible que Play Protect y Google Play miran con desconfianza.
+     */
     private fun askBatteryExemption() {
-        try {
-            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
-        } catch (_: ActivityNotFoundException) {
-            try { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) } catch (_: Exception) { }
+        Toast.makeText(this, getString(R.string.battery_hint), Toast.LENGTH_LONG).show()
+        val attempts = listOf(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")),
+            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        )
+        for (i in attempts) {
+            try { startActivity(i); return } catch (_: ActivityNotFoundException) { } catch (_: SecurityException) { }
         }
     }
 
