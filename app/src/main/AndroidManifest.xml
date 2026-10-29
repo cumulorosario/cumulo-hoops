@@ -37,5 +37,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Servidor web local que alimenta el tablero y el reloj de posesión en las TVs de la red WiFi" />
         </service>
+
+        <!-- Fotos de la cámara y archivos para compartir (solo con permiso puntual) -->
+        <provider
+            android:name=".FilesProvider"
+            android:authorities="ar.cumulo.hoops.files"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

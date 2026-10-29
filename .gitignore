@@ -6,5 +6,4 @@ local.properties
 .DS_Store
 captures/
 .kotlin/
-pc/partido.json
-pc/partido.json.tmp
+pc/datos/

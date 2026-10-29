@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "cumulo-hoops"
-include(":app")
+include(":app", ":pc")

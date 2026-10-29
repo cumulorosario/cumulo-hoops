@@ -16,4 +16,6 @@
     <string name="notif_running">TVs y operadores: %1$s</string>
     <string name="notif_running_noip">Activá el hotspot o conectate a un WiFi</string>
     <string name="error_port">No se pudo abrir el puerto %1$d. ¿Hay otra app usándolo?</string>
+    <string name="photo_chooser">Sacar o elegir una foto</string>
+    <string name="share_title">Compartir estadísticas</string>
 </resources>

@@ -6,6 +6,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
@@ -17,24 +18,45 @@ import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** De dónde salen los archivos de las pantallas (assets en Android, una carpeta en PC). */
+/** De dónde salen los archivos de las pantallas (assets en Android, una carpeta o el .jar en PC). */
 fun interface AssetSource {
     fun read(path: String): ByteArray?
 }
 
 /**
- * Servidor HTTP mínimo para la red local:
- *  - GET  /, /operador, /tablero, /posesion y archivos estáticos
- *  - GET  /events        estado en vivo (Server-Sent Events)
- *  - POST /api/action    acciones del operador (JSON)
- *  - GET  /api/info      IPs y puerto para armar los QR
- *  - GET  /api/state     estado actual
+ * Servidor HTTP mínimo para la red local.
+ *
+ * Páginas (piden contraseña si la pantalla la tiene):
+ *   /            Conectar (QR); en el equipo servidor, también las contraseñas
+ *   /login       ingreso con contraseña
+ *   /operador    mesa de control              [operador]
+ *   /tablero     tablero principal            [tablero]
+ *   /posesion    reloj de 24                  [posesion]
+ *   /estadisticas planilla y compartir        [operador]
+ *
+ * API:
+ *   GET  /events          estado en vivo (Server-Sent Events)          [cualquier pantalla]
+ *   GET  /api/state       estado actual                                [cualquier pantalla]
+ *   POST /api/action      acciones del operador (JSON)                 [operador]
+ *   POST /api/upload      foto de escudo o jugador (?team=&player=)    [operador]
+ *   GET  /media/...       fotos guardadas                              [cualquier pantalla]
+ *   GET  /api/info        IPs y puerto para armar los QR
+ *   GET  /api/auth        qué pantallas tienen contraseña y a cuáles puede entrar este dispositivo
+ *   POST /api/login       {screen, password}
+ *   POST /api/logout
+ *   POST /api/passwords   {operador?, tablero?, posesion?}  solo desde el propio equipo servidor
+ *
+ * El propio equipo servidor (127.0.0.1) siempre tiene acceso: es el que maneja las contraseñas.
  */
 class WebServer(
     private val game: Game,
     private val assets: AssetSource,
     private val port: Int = 3000,
     private val persist: ((String) -> Unit)? = null,
+    private val security: Security = Security(),
+    private val media: MediaStore? = null,
+    /** Dispositivos con acceso total (por defecto, el propio equipo). */
+    private val trusted: (InetAddress) -> Boolean = { it.isLoopbackAddress },
 ) {
     private var server: ServerSocket? = null
     private val clients = CopyOnWriteArrayList<SseClient>()
@@ -49,6 +71,13 @@ class WebServer(
     val localPort: Int get() = server?.localPort ?: port
     val screenCount: Int get() = clients.size
 
+    private class Request(
+        val method: String, val path: String, val query: Map<String, String>,
+        val token: String?, val local: Boolean, val client: String, val body: ByteArray,
+    ) {
+        val text: String get() = String(body, Charsets.UTF_8)
+    }
+
     @Throws(IOException::class)
     fun start() {
         val ss = ServerSocket()
@@ -61,6 +90,7 @@ class WebServer(
         // Reenvío periódico: resincroniza relojes y permite detectar pantallas desconectadas.
         scheduler.scheduleAtFixedRate({ broadcaster.execute { broadcast() } }, 5, 5, TimeUnit.SECONDS)
         scheduler.scheduleAtFixedRate({ guard { if (dirty || game.isClockRunning()) save() } }, 1, 2, TimeUnit.SECONDS)
+        media?.let { m -> scheduler.execute { guard { m.cleanup(game.mediaInUse()) } } }
     }
 
     fun stop() {
@@ -137,17 +167,22 @@ class WebServer(
             val method = parts[0].uppercase()
             val target = parts[1]
             var contentLength = 0
+            var cookie = ""
             var headers = 0
             while (true) {
                 val h = readLine(input) ?: return
                 if (h.isEmpty()) break
                 if (++headers > 100) return
                 val idx = h.indexOf(':')
-                if (idx > 0 && h.substring(0, idx).trim().equals("content-length", true)) {
-                    contentLength = h.substring(idx + 1).trim().toIntOrNull() ?: 0
+                if (idx <= 0) continue
+                val name = h.substring(0, idx).trim().lowercase()
+                val value = h.substring(idx + 1).trim()
+                when (name) {
+                    "content-length" -> contentLength = value.toIntOrNull() ?: 0
+                    "cookie" -> cookie = value
                 }
             }
-            if (contentLength > MAX_BODY) return respond(out, 413, "text/plain", "Demasiado grande".toByteArray())
+            if (contentLength > MAX_BODY) return respond(out, 413, "text/plain; charset=utf-8", "Demasiado grande".toByteArray())
             val body = ByteArray(contentLength)
             var read = 0
             while (read < contentLength) {
@@ -161,14 +196,13 @@ class WebServer(
             }
 
             val path = try { URLDecoder.decode(target.substringBefore('?'), "UTF-8") } catch (_: Exception) { "/" }
-            when {
-                path == "/events" -> { openEvents(sock, out); keepOpen = true }
-                path == "/api/action" && method == "POST" -> action(out, String(body, Charsets.UTF_8))
-                path == "/api/info" -> json(out, 200, Json.stringify(linkedMapOf("ips" to lanIPs(), "port" to localPort, "screens" to clients.size)))
-                path == "/api/state" -> json(out, 200, game.publicJson())
-                method == "GET" || method == "HEAD" -> static(out, path, method == "HEAD")
-                else -> respond(out, 405, "text/plain", "Método no permitido".toByteArray())
-            }
+            val token = cookie.split(';').map { it.trim() }.firstOrNull { it.startsWith("$COOKIE=") }
+                ?.substringAfter('=')?.takeIf { Security.TOKEN.matches(it) }
+            val req = Request(
+                method, path, parseQuery(target.substringAfter('?', "")), token,
+                local = trusted(sock.inetAddress), client = sock.inetAddress.hostAddress ?: "?", body = body
+            )
+            keepOpen = route(req, sock, out)
         } catch (_: IOException) {
             // conexión cortada
         } catch (e: Exception) {
@@ -178,13 +212,117 @@ class WebServer(
         }
     }
 
+    /** Devuelve true si la conexión queda abierta (eventos en vivo). */
+    private fun route(r: Request, sock: Socket, out: BufferedOutputStream): Boolean {
+        val p = r.path
+        when {
+            p == "/events" -> {
+                if (!canWatch(r)) { denied(out); return false }
+                openEvents(sock, out)
+                return true
+            }
+            p == "/api/state" -> if (canWatch(r)) json(out, 200, game.publicJson()) else denied(out)
+            p == "/api/action" && r.method == "POST" -> if (can(r, Security.OPERATOR)) action(out, r.text) else denied(out)
+            p == "/api/upload" && r.method == "POST" -> if (can(r, Security.OPERATOR)) upload(out, r) else denied(out)
+            p.startsWith("/media/") -> {
+                if (!canWatch(r)) return denied(out).let { false }
+                val data = media?.read(p.removePrefix("/media/"))
+                    ?: return respond(out, 404, "text/plain; charset=utf-8", "No encontrado".toByteArray()).let { false }
+                // Los nombres son únicos, así que las TVs pueden guardarlas en caché sin problema.
+                respond(out, 200, MIME[p.substringAfterLast('.')] ?: "image/jpeg", data, r.method == "HEAD",
+                    listOf("Cache-Control: private, max-age=31536000, immutable"))
+            }
+            p == "/api/info" -> json(out, 200, Json.stringify(linkedMapOf(
+                "ips" to lanIPs(), "port" to localPort, "screens" to clients.size,
+                "local" to r.local, "protected" to security.summary()
+            )))
+            p == "/api/auth" -> json(out, 200, authJson(r, r.token))
+            p == "/api/login" && r.method == "POST" -> login(out, r)
+            p == "/api/logout" && r.method == "POST" -> {
+                security.logout(r.token)
+                respond(out, 200, JSON_TYPE, """{"ok":true}""".toByteArray(), extra = listOf(clearCookie()))
+            }
+            p == "/api/passwords" && r.method == "POST" -> passwords(out, r)
+            r.method == "GET" || r.method == "HEAD" -> page(out, r)
+            else -> respond(out, 405, "text/plain; charset=utf-8", "Método no permitido".toByteArray())
+        }
+        return false
+    }
+
+    private fun can(r: Request, screen: String) = r.local || security.allowed(screen, r.token)
+    private fun canWatch(r: Request) = Security.SCREENS.any { can(r, it) }
+
+    private fun denied(out: OutputStream) =
+        json(out, 401, """{"ok":false,"error":"Acceso no autorizado: ingresá la contraseña","login":true}""")
+
+    private fun authJson(r: Request, token: String?): String = Json.stringify(linkedMapOf(
+        "local" to r.local,
+        "screens" to Security.SCREENS.associateWith { s ->
+            linkedMapOf("protected" to security.isProtected(s), "allowed" to (r.local || security.allowed(s, token)))
+        }
+    ))
+
+    private fun login(out: OutputStream, r: Request) {
+        val m = try { Json.parseObject(r.text) } catch (e: Exception) { return json(out, 400, err("Datos inválidos")) }
+        val screen = m.str("screen").orEmpty()
+        if (screen !in Security.SCREENS) return json(out, 400, err("Pantalla inválida"))
+        when (val res = security.login(screen, m.str("password").orEmpty(), r.client, r.token)) {
+            is Security.Login.Ok -> respond(out, 200, JSON_TYPE, authJson(r, res.token).toByteArray(Charsets.UTF_8),
+                extra = listOf("Set-Cookie: $COOKIE=${res.token}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax"))
+            Security.Login.Open -> json(out, 200, authJson(r, r.token))
+            Security.Login.Wrong -> json(out, 401, err("Contraseña incorrecta"))
+            is Security.Login.Blocked -> json(out, 429, err("Demasiados intentos. Esperá ${(res.seconds + 59) / 60} min y probá de nuevo."))
+        }
+    }
+
+    private fun passwords(out: OutputStream, r: Request) {
+        if (!r.local) return json(out, 403, err("Las contraseñas solo se cambian desde el equipo que hace de servidor"))
+        try {
+            val m = Json.parseObject(r.text)
+            val changes = Security.SCREENS.filter { m.containsKey(it) }.associateWith { m.str(it) }
+            // Validar todo antes de cambiar nada
+            for ((_, pw) in changes) {
+                val v = pw?.trim().orEmpty()
+                require(v.isEmpty() || v.length in 4..64) { "Cada contraseña debe tener entre 4 y 64 caracteres" }
+            }
+            for ((s, pw) in changes) security.setPassword(s, pw)
+            // Las pantallas conectadas se reconectan y, si ya no tienen permiso, piden la contraseña.
+            clients.forEach { it.close() }
+            clients.clear()
+            json(out, 200, Json.stringify(linkedMapOf("ok" to true, "protected" to security.summary())))
+        } catch (e: IllegalArgumentException) {
+            json(out, 400, err(e.message ?: "Datos inválidos"))
+        }
+    }
+
+    private fun upload(out: OutputStream, r: Request) {
+        val store = media ?: return json(out, 400, err("Este servidor no guarda fotos"))
+        try {
+            val side = r.query["team"] ?: throw IllegalArgumentException("Falta el equipo")
+            val playerId = r.query["player"]?.toIntOrNull()
+            val url = store.save(r.body)
+            try {
+                if (playerId == null) game.setTeamLogo(side, url) else game.setPlayerPhoto(side, playerId, url)
+            } catch (e: Exception) {
+                store.cleanup(game.mediaInUse())
+                throw e
+            }
+            store.cleanup(game.mediaInUse())
+            changed()
+            json(out, 200, Json.stringify(linkedMapOf("ok" to true, "url" to url)))
+        } catch (e: IllegalArgumentException) {
+            json(out, 400, err(e.message ?: "Imagen inválida"))
+        }
+    }
+
     private fun action(out: OutputStream, body: String) {
         try {
             game.dispatch(Json.parseObject(body.ifBlank { "{}" }))
             changed()
+            media?.let { m -> guard { m.cleanup(game.mediaInUse()) } }
             json(out, 200, """{"ok":true}""")
         } catch (e: Exception) {
-            json(out, 400, Json.stringify(linkedMapOf("ok" to false, "error" to (e.message ?: "Error"))))
+            json(out, 400, err(e.message ?: "Error"))
         }
     }
 
@@ -192,32 +330,55 @@ class WebServer(
         sock.soTimeout = 0
         sock.keepAlive = true
         val head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream; charset=utf-8\r\n" +
-            "Cache-Control: no-cache\r\nConnection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n"
+            "Cache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n"
         val c = SseClient(sock, out)
         val first = (head + "retry: 1000\n\ndata: ${game.publicJson()}\n\n").toByteArray(Charsets.UTF_8)
         if (c.send(first)) clients.add(c)
     }
 
-    private fun static(out: OutputStream, path: String, headOnly: Boolean) {
-        val file = ROUTES[path] ?: path.trimStart('/')
+    private fun page(out: OutputStream, r: Request) {
+        val file = ROUTES[r.path] ?: r.path.trimStart('/')
+        PROTECTED[r.path]?.let { screen ->
+            if (!can(r, screen)) {
+                val next = r.path
+                return respond(out, 302, "text/plain; charset=utf-8", ByteArray(0),
+                    extra = listOf("Location: /login?p=$screen&next=$next"))
+            }
+        }
         if (file.isEmpty() || file.contains("..") || file.contains('\\')) {
             return respond(out, 404, "text/plain; charset=utf-8", "No encontrado".toByteArray())
         }
         val data = assets.read(file) ?: return respond(out, 404, "text/plain; charset=utf-8", "No encontrado".toByteArray())
         val type = MIME[file.substringAfterLast('.', "").lowercase()] ?: "application/octet-stream"
-        respond(out, 200, type, data, headOnly)
+        respond(out, 200, type, data, r.method == "HEAD")
     }
 
-    private fun json(out: OutputStream, code: Int, text: String) =
-        respond(out, code, "application/json; charset=utf-8", text.toByteArray(Charsets.UTF_8))
+    private fun err(msg: String) = Json.stringify(linkedMapOf("ok" to false, "error" to msg))
 
-    private fun respond(out: OutputStream, code: Int, type: String, body: ByteArray, headOnly: Boolean = false) {
-        val head = "HTTP/1.1 $code ${REASON[code] ?: "OK"}\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\n" +
-            "Cache-Control: no-cache\r\nConnection: close\r\n\r\n"
-        out.write(head.toByteArray(Charsets.ISO_8859_1))
+    private fun clearCookie() = "Set-Cookie: $COOKIE=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+
+    private fun json(out: OutputStream, code: Int, text: String) =
+        respond(out, code, JSON_TYPE, text.toByteArray(Charsets.UTF_8))
+
+    private fun respond(
+        out: OutputStream, code: Int, type: String, body: ByteArray,
+        headOnly: Boolean = false, extra: List<String> = emptyList(),
+    ) {
+        val sb = StringBuilder("HTTP/1.1 $code ${REASON[code] ?: "OK"}\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\n")
+        if (extra.none { it.startsWith("Cache-Control") }) sb.append("Cache-Control: no-cache\r\n")
+        for (h in extra) sb.append(h).append("\r\n")
+        sb.append("X-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n")
+        out.write(sb.toString().toByteArray(Charsets.ISO_8859_1))
         if (!headOnly) out.write(body)
         out.flush()
     }
+
+    private fun parseQuery(q: String): Map<String, String> = q.split('&').mapNotNull {
+        val k = it.substringBefore('=')
+        if (k.isEmpty()) null else try {
+            URLDecoder.decode(k, "UTF-8") to URLDecoder.decode(it.substringAfter('=', ""), "UTF-8")
+        } catch (_: Exception) { null }
+    }.toMap()
 
     private fun readLine(input: InputStream): String? {
         val sb = StringBuilder()
@@ -245,10 +406,19 @@ class WebServer(
     }
 
     companion object {
-        private const val MAX_BODY = 1_000_000
+        private const val MAX_BODY = 2_500_000
+        private const val COOKIE = "hoops"
+        private const val JSON_TYPE = "application/json; charset=utf-8"
         private val ROUTES = mapOf(
-            "/" to "index.html", "/operador" to "operador.html",
-            "/tablero" to "tablero.html", "/posesion" to "posesion.html"
+            "/" to "index.html", "/login" to "login.html", "/operador" to "operador.html",
+            "/tablero" to "tablero.html", "/posesion" to "posesion.html", "/estadisticas" to "estadisticas.html"
+        )
+        /** Qué contraseña pide cada página. */
+        private val PROTECTED = mapOf(
+            "/operador" to Security.OPERATOR, "/operador.html" to Security.OPERATOR,
+            "/estadisticas" to Security.OPERATOR, "/estadisticas.html" to Security.OPERATOR,
+            "/tablero" to "tablero", "/tablero.html" to "tablero",
+            "/posesion" to "posesion", "/posesion.html" to "posesion"
         )
         private val MIME = mapOf(
             "html" to "text/html; charset=utf-8", "js" to "application/javascript; charset=utf-8",
@@ -256,7 +426,10 @@ class WebServer(
             "svg" to "image/svg+xml", "ico" to "image/x-icon", "jpg" to "image/jpeg", "webp" to "image/webp",
             "mp3" to "audio/mpeg", "woff2" to "font/woff2"
         )
-        private val REASON = mapOf(200 to "OK", 400 to "Bad Request", 404 to "Not Found", 405 to "Method Not Allowed", 413 to "Payload Too Large")
+        private val REASON = mapOf(
+            200 to "OK", 302 to "Found", 400 to "Bad Request", 401 to "Unauthorized", 403 to "Forbidden",
+            404 to "Not Found", 405 to "Method Not Allowed", 413 to "Payload Too Large", 429 to "Too Many Requests"
+        )
         // Interfaces típicas del hotspot en Android y de datos móviles (que no sirven para las TVs)
         private val HOTSPOT = listOf("ap", "swlan", "softap", "wlan1", "wlan2", "rndis", "wigig")
         private val CELLULAR = listOf("rmnet", "ccmni", "v4-rmnet", "dummy", "tun", "ppp", "clat", "ims")

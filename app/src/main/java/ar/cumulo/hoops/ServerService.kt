@@ -15,6 +15,8 @@ import android.os.PowerManager
 import android.util.Log
 import ar.cumulo.hoops.core.AssetSource
 import ar.cumulo.hoops.core.Game
+import ar.cumulo.hoops.core.MediaStore
+import ar.cumulo.hoops.core.Security
 import ar.cumulo.hoops.core.WebServer
 import java.io.File
 import java.io.IOException
@@ -49,7 +51,13 @@ class ServerService : Service() {
         val assetSource = AssetSource { path ->
             try { assets.open(path).use { it.readBytes() } } catch (_: IOException) { null }
         }
-        val ws = WebServer(game, assetSource, PORT, persist = { json -> writeAtomic(saveFile, json) })
+        // Contraseñas y sesiones de los dispositivos, y fotos de escudos y jugadores: quedan en el celular.
+        val secFile = File(filesDir, "seguridad.json")
+        val security = Security(persist = { json -> writeAtomic(secFile, json) })
+        if (secFile.isFile) security.load(secFile.readText())
+        val media = MediaStore(File(filesDir, "media"))
+        val ws = WebServer(game, assetSource, PORT, persist = { json -> writeAtomic(saveFile, json) },
+            security = security, media = media)
         try {
             ws.start()
         } catch (e: IOException) {
@@ -141,6 +149,7 @@ class ServerService : Service() {
         super.onDestroy()
     }
 
+    @Synchronized
     private fun writeAtomic(file: File, text: String) {
         val tmp = File(file.parentFile, file.name + ".tmp")
         tmp.writeText(text)

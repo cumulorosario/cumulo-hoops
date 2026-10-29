@@ -4,46 +4,92 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Conectar · Cúmulo Hoops</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/css/brand.css">
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background: #060912; color: #e6ebf4; font-family: system-ui, "Segoe UI", Roboto, sans-serif;
-         display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
-  h1 { margin: 8px 0 4px; font-size: 28px; }
-  p.sub { color: #8391a8; margin: 0 0 22px; text-align: center; max-width: 620px; line-height: 1.45; }
-  .cards { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; width: 100%; }
+         display: flex; flex-direction: column; align-items: center; padding: 18px 16px 0; }
+  header { width: 100%; max-width: 940px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  p.sub { color: #8391a8; margin: 0 0 18px; text-align: center; max-width: 640px; line-height: 1.45; }
+  .cards { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; width: 100%; max-width: 940px; }
   .card { width: 290px; max-width: 100%; padding: 18px; border-radius: 16px; background: #0d1322; border: 1px solid #1f2a40; text-align: center; }
   .card b { display: block; font-size: 19px; }
   .card span { color: #8391a8; font-size: 13px; }
-  .qr { background: #fff; border-radius: 12px; padding: 10px; margin: 14px auto 10px; width: 210px; height: 210px; }
-  .qr img, .qr svg { width: 100%; height: 100%; display: block; }
+  .lock { display: inline-block; white-space: nowrap; font-style: normal; font-size: 12px; font-weight: 700; margin-left: 6px; padding: 2px 7px; border-radius: 6px; vertical-align: middle; }
+  .lock.on { background: rgba(16,185,129,.15); color: #6ee7b7; }
+  .lock.off { background: rgba(251,191,36,.12); color: #fbbf24; }
+  .qr { background: #fff; border-radius: 12px; padding: 10px; margin: 14px auto 10px; width: 200px; height: 200px; }
+  .qr svg { width: 100%; height: 100%; display: block; }
   .url { font-family: ui-monospace, Consolas, monospace; color: #fbbf24; font-size: 13px; word-break: break-all; }
   .card a.go { display: inline-block; margin-top: 12px; padding: 9px 16px; border-radius: 10px; background: #fbbf24; color: #111; font-weight: 800; text-decoration: none; }
-  .warn { background: #2a1d07; border: 1px solid #78350f; color: #fde68a; border-radius: 12px; padding: 12px 16px; max-width: 620px; margin-bottom: 18px; line-height: 1.45; display: none; }
-  .ips { margin: 0 0 18px; display: none; }
+  .warn { background: #2a1d07; border: 1px solid #78350f; color: #fde68a; border-radius: 12px; padding: 12px 16px; max-width: 640px; margin-bottom: 16px; line-height: 1.45; display: none; }
+  .ips { margin: 0 0 16px; display: none; }
   .ips button { font: inherit; color: #e6ebf4; background: #121a2c; border: 1px solid #1f2a40; border-radius: 8px; padding: 6px 10px; margin: 3px; cursor: pointer; }
   .ips button.on { background: #fbbf24; color: #111; border-color: #fbbf24; font-weight: 700; }
-  .steps { max-width: 620px; color: #aab4c5; font-size: 14px; line-height: 1.6; margin-top: 26px; }
+
+  /* Contraseñas (solo en el equipo servidor) */
+  .sec { width: 100%; max-width: 940px; margin-top: 18px; background: #0d1322; border: 1px solid #1f2a40; border-radius: 16px; padding: 18px; display: none; }
+  .sec h2 { margin: 0 0 4px; font-size: 18px; }
+  .sec > p { margin: 0 0 14px; color: #8391a8; font-size: 14px; line-height: 1.45; }
+  .pwgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .pwgrid { grid-template-columns: 1fr; } }
+  .pwf { background: #0a0f1c; border: 1px solid #1f2a40; border-radius: 12px; padding: 12px; }
+  .pwf label { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 4px; }
+  .pwf small { display: block; color: #8391a8; font-size: 12px; margin-bottom: 8px; }
+  .pwrow { display: flex; gap: 6px; }
+  .pwrow input { flex: 1; min-width: 0; font: inherit; color: #e6ebf4; background: #070b15; border: 1px solid #2a3753; border-radius: 8px; padding: 9px 10px; }
+  .pwrow button, .sec-actions button { font: inherit; color: #e6ebf4; background: #121a2c; border: 1px solid #2a3753; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+  .pwf .rm { margin-top: 8px; font-size: 12px; color: #fca5a5; background: none; border: 0; padding: 0; cursor: pointer; display: none; }
+  .sec-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+  .sec-actions .save { background: #fbbf24; border-color: #fbbf24; color: #111; font-weight: 800; padding: 10px 18px; }
+  .msg { font-size: 14px; }
+  .msg.ok { color: #6ee7b7; } .msg.bad { color: #fca5a5; }
+
+  .steps { max-width: 640px; color: #aab4c5; font-size: 14px; line-height: 1.6; margin-top: 22px; }
   .steps b { color: #e6ebf4; }
 </style>
 </head>
 <body>
-  <h1>🏀 Cúmulo Hoops</h1>
+  <header>
+    <div class="cb-brand"><img src="/img/cumulo-isotipo.png" alt=""><div><b>Cúmulo Hoops</b><small>Desarrollado por <em>Cúmulo Ingeniería</em></small></div></div>
+  </header>
   <p class="sub">Conectá cada dispositivo a la <b>misma red</b> que este servidor (el hotspot del celular o el WiFi del club) y escaneá el código con su cámara, o escribí la dirección en su navegador.</p>
   <div class="warn" id="warn"></div>
   <div class="ips" id="ips"></div>
   <div class="cards">
-    <div class="card"><b>Mesa de control</b><span>Celular, tablet o PC del operador</span><div class="qr" id="q-op"></div><div class="url" id="u-op"></div><a class="go" href="/operador">Abrir aquí</a></div>
-    <div class="card"><b>Tablero principal</b><span>TV grande de la cancha</span><div class="qr" id="q-tab"></div><div class="url" id="u-tab"></div><a class="go" href="/tablero">Abrir aquí</a></div>
-    <div class="card"><b>Reloj de 24</b><span>TVs chicas detrás de los aros</span><div class="qr" id="q-pos"></div><div class="url" id="u-pos"></div><a class="go" href="/posesion">Abrir aquí</a></div>
+    <div class="card"><b>Mesa de control<i class="lock" id="l-operador"></i></b><span>Celular, tablet o PC del operador</span><div class="qr" id="q-op"></div><div class="url" id="u-op"></div><a class="go" href="/operador">Abrir aquí</a></div>
+    <div class="card"><b>Tablero principal<i class="lock" id="l-tablero"></i></b><span>TV grande de la cancha</span><div class="qr" id="q-tab"></div><div class="url" id="u-tab"></div><a class="go" href="/tablero">Abrir aquí</a></div>
+    <div class="card"><b>Reloj de 24<i class="lock" id="l-posesion"></i></b><span>TVs chicas detrás de los aros</span><div class="qr" id="q-pos"></div><div class="url" id="u-pos"></div><a class="go" href="/posesion">Abrir aquí</a></div>
   </div>
+
+  <form class="sec" id="sec" autocomplete="off">
+    <h2>🔒 Contraseñas de acceso</h2>
+    <p>Cada pantalla puede tener su contraseña. Los dispositivos la ingresan una sola vez y quedan habilitados. Quien entra como operador también puede abrir el tablero y el reloj de 24. Este celular siempre tiene acceso, sin contraseña.</p>
+    <div class="pwgrid">
+      <div class="pwf"><label>Mesa de control <i class="lock" id="s-operador"></i></label><small>Quién puede cargar puntos, faltas, relojes y fotos.</small>
+        <div class="pwrow"><input name="operador" type="password" placeholder="Nueva contraseña" minlength="4" maxlength="64"><button type="button" class="eye">👁</button></div>
+        <button type="button" class="rm" data-rm="operador">Quitar contraseña</button></div>
+      <div class="pwf"><label>Tablero principal <i class="lock" id="s-tablero"></i></label><small>Para la TV grande. Conviene un número corto, fácil de escribir con el control remoto.</small>
+        <div class="pwrow"><input name="tablero" type="password" placeholder="Nueva contraseña" minlength="4" maxlength="64"><button type="button" class="eye">👁</button></div>
+        <button type="button" class="rm" data-rm="tablero">Quitar contraseña</button></div>
+      <div class="pwf"><label>Reloj de 24 <i class="lock" id="s-posesion"></i></label><small>Para las TVs chicas de posesión.</small>
+        <div class="pwrow"><input name="posesion" type="password" placeholder="Nueva contraseña" minlength="4" maxlength="64"><button type="button" class="eye">👁</button></div>
+        <button type="button" class="rm" data-rm="posesion">Quitar contraseña</button></div>
+    </div>
+    <div class="sec-actions"><button class="save" type="submit">Guardar contraseñas</button><span class="msg" id="msg"></span></div>
+  </form>
+
   <div class="steps">
-    <b>En las TVs:</b> abrí el navegador, escribí la dirección del tablero o del reloj de 24 y presioná OK una vez para activar la chicharra y la pantalla completa.<br>
+    <b>En las TVs:</b> abrí el navegador, escribí la dirección del tablero o del reloj de 24, ingresá la contraseña si la tiene y presioná OK una vez para activar la chicharra y la pantalla completa.<br>
     <b>Varios operadores:</b> se puede abrir la mesa de control en más de un dispositivo a la vez; todos ven y cargan lo mismo.
   </div>
+  <footer class="cb-foot"><div class="cb-card"><span>Desarrollado<br>por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div></footer>
+
   <script src="/js/vendor/qrcode.js"></script>
   <script>
   (function () {
-    var host = location.hostname, port = location.port || '80', chosen = null;
+    var host = location.hostname, chosen = null, NAMES = ['operador', 'tablero', 'posesion'];
     var isLocal = host === 'localhost' || host === '127.0.0.1';
     function $(id) { return document.getElementById(id); }
     function draw(base) {
@@ -55,27 +101,82 @@
         $('q-' + items[i][0]).innerHTML = qr.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
       }
     }
+    function showLocks(p) {
+      NAMES.forEach(function (n) {
+        ['l-', 's-'].forEach(function (pre) {
+          var el = $(pre + n);
+          el.className = 'lock ' + (p[n] ? 'on' : 'off');
+          el.textContent = p[n] ? '🔒 protegida' : 'abierta';
+        });
+        document.querySelector('[data-rm="' + n + '"]').style.display = p[n] ? 'inline' : 'none';
+      });
+    }
     function load() {
       fetch('/api/info').then(function (r) { return r.json(); }).then(function (info) {
         var ips = info.ips || [];
-        if (!isLocal) { draw(location.protocol + '//' + location.host); return; }
-        if (!ips.length) {
-          $('warn').style.display = 'block';
-          $('warn').innerHTML = '⚠ Todavía no se detectó la IP de este equipo en la red. Conectá otro dispositivo al hotspot y abrí en él la dirección de la <b>puerta de enlace</b> de esa red con <b>:' + info.port + '</b> al final (ej. <b>http://192.168.43.1:' + info.port + '</b>). Apenas entre, esta página se actualiza sola.';
+        showLocks(info.protected || {});
+        if (info.local) $('sec').style.display = 'block';
+        var warns = [];
+        if (info.local && !(info.protected || {}).operador) {
+          warns.push('⚠ La <b>mesa de control no tiene contraseña</b>: cualquiera conectado a la red puede operar el tablero. Definila más abajo.');
+        }
+        if (!isLocal) {
+          draw(location.protocol + '//' + location.host);
+        } else if (!ips.length) {
+          warns.push('⚠ Todavía no se detectó la IP de este equipo en la red. Conectá otro dispositivo al hotspot y abrí en él la dirección de la <b>puerta de enlace</b> de esa red con <b>:' + info.port + '</b> al final (ej. <b>http://192.168.43.1:' + info.port + '</b>). Apenas entre, esta página se actualiza sola.');
           draw('http://localhost:' + info.port);
           setTimeout(load, 3000);
-          return;
+        } else {
+          if (!chosen || ips.indexOf(chosen) < 0) chosen = ips[0];
+          if (ips.length > 1) {
+            $('ips').style.display = 'block';
+            $('ips').innerHTML = 'Red: ' + ips.map(function (ip) { return '<button class="' + (ip === chosen ? 'on' : '') + '" data-ip="' + ip + '">' + ip + '</button>'; }).join('');
+          }
+          draw('http://' + chosen + ':' + info.port);
         }
-        $('warn').style.display = 'none';
-        if (!chosen || ips.indexOf(chosen) < 0) chosen = ips[0];
-        if (ips.length > 1) {
-          $('ips').style.display = 'block';
-          $('ips').innerHTML = 'Red: ' + ips.map(function (ip) { return '<button class="' + (ip === chosen ? 'on' : '') + '" data-ip="' + ip + '">' + ip + '</button>'; }).join('');
-        }
-        draw('http://' + chosen + ':' + info.port);
+        $('warn').innerHTML = warns.join('<br><br>');
+        $('warn').style.display = warns.length ? 'block' : 'none';
       }).catch(function () { setTimeout(load, 3000); });
     }
     $('ips').addEventListener('click', function (e) { var ip = e.target.getAttribute('data-ip'); if (ip) { chosen = ip; load(); } });
+
+    // ---- contraseñas
+    function msg(t, ok) { $('msg').textContent = t; $('msg').className = 'msg ' + (ok ? 'ok' : 'bad'); }
+    function savePasswords(body) {
+      return fetch('/api/passwords', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Error'); return j; }); })
+        .then(function (j) {
+          showLocks(j.protected);
+          Array.prototype.forEach.call(document.querySelectorAll('#sec input'), function (i) { i.value = ''; });
+          load();
+          return j;
+        });
+    }
+    $('sec').addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.classList.contains('eye')) {
+        var inp = t.parentNode.querySelector('input');
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      }
+      var rm = t.getAttribute('data-rm');
+      if (rm && confirm('¿Quitar la contraseña? Cualquiera conectado a la red podrá abrir esa pantalla.')) {
+        var b = {}; b[rm] = '';
+        savePasswords(b).then(function () { msg('Contraseña quitada', true); }).catch(function (err) { msg(err.message, false); });
+      }
+    });
+    $('sec').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var body = {}, any = false;
+      NAMES.forEach(function (n) {
+        var v = $('sec').elements[n].value.trim();
+        if (v) { body[n] = v; any = true; }
+      });
+      if (!any) return msg('Escribí al menos una contraseña nueva', false);
+      for (var k in body) if (body[k].length < 4) return msg('Cada contraseña debe tener al menos 4 caracteres', false);
+      savePasswords(body).then(function () {
+        msg('✓ Guardado. Los dispositivos conectados van a tener que ingresar la contraseña nueva.', true);
+      }).catch(function (err) { msg(err.message, false); });
+    });
     load();
   })();
   </script>

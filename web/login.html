@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ingresar · Cúmulo Hoops</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/css/brand.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #060912; color: #e6ebf4; font-family: system-ui, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px 16px; }
+  .box { width: 100%; max-width: 420px; background: #0d1322; border: 1px solid #1f2a40; border-radius: 18px; padding: 26px 22px; text-align: center; }
+  .box > img { height: 64px; margin-bottom: 14px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p { margin: 0 0 18px; color: #8391a8; font-size: 14px; line-height: 1.45; }
+  label { display: block; text-align: left; font-size: 13px; color: #8391a8; margin-bottom: 6px; }
+  .pw { display: flex; gap: 6px; }
+  input { flex: 1; min-width: 0; font: inherit; font-size: 20px; letter-spacing: .08em; color: #e6ebf4; background: #070b15;
+          border: 1px solid #2a3753; border-radius: 10px; padding: 12px 14px; }
+  input:focus { outline: 2px solid #6f99ca; border-color: #6f99ca; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid #2a3753; background: #121a2c; color: #e6ebf4; padding: 0 14px; }
+  button.go { width: 100%; margin-top: 14px; padding: 14px; background: #fbbf24; border-color: #fbbf24; color: #111; font-weight: 800; font-size: 17px; }
+  button.go:focus { outline: 3px solid #fff; }
+  .err { color: #fca5a5; min-height: 22px; margin-top: 12px; font-size: 14px; }
+  .hint { margin-top: 16px; font-size: 12px; color: #6b7891; }
+</style>
+</head>
+<body>
+  <form class="box" id="f" autocomplete="off">
+    <img src="/img/cumulo-isotipo.png" alt="">
+    <h1 id="title">Ingresar</h1>
+    <p id="sub">Esta pantalla está protegida con contraseña.</p>
+    <label for="pw">Contraseña</label>
+    <div class="pw">
+      <input id="pw" type="password" autocomplete="current-password" autofocus required>
+      <button type="button" id="show" title="Mostrar">👁</button>
+    </div>
+    <button class="go" type="submit">Entrar</button>
+    <div class="err" id="err" role="alert"></div>
+    <div class="hint">La contraseña se define en la app del celular que hace de servidor, en la pantalla <b>Conectar</b>.</div>
+  </form>
+  <div class="cb-foot"><div class="cb-card"><span>Desarrollado<br>por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div></div>
+<script>
+(function () {
+  var NAMES = { operador: 'Mesa de control', tablero: 'Tablero principal', posesion: 'Reloj de 24' };
+  var PAGES = { operador: '/operador', tablero: '/tablero', posesion: '/posesion' };
+  var q = {};
+  location.search.replace(/^\?/, '').split('&').forEach(function (kv) {
+    var i = kv.indexOf('='); if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
+  });
+  var screen = NAMES[q.p] ? q.p : 'operador';
+  // Solo se vuelve a una página de esta misma app
+  var next = /^\/[a-z]*(\?[\w=&%.-]*)?$/i.test(q.next || '') ? q.next : PAGES[screen];
+  var $ = function (id) { return document.getElementById(id); };
+  $('title').textContent = NAMES[screen];
+  document.title = NAMES[screen] + ' · Ingresar';
+
+  // Si ya tiene acceso (o la pantalla no tiene contraseña), seguir de largo
+  fetch('/api/auth', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (a) {
+    if (a.screens[screen].allowed) location.replace(next);
+  }).catch(function () {});
+
+  $('show').addEventListener('click', function () {
+    $('pw').type = $('pw').type === 'password' ? 'text' : 'password';
+    $('pw').focus();
+  });
+
+  $('f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('err').textContent = '';
+    fetch('/api/login', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ screen: screen, password: $('pw').value })
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (r.ok) { location.replace(next); return; }
+        $('err').textContent = j.error || 'No se pudo ingresar';
+        $('pw').select();
+      });
+    }).catch(function () { $('err').textContent = 'Sin conexión con el servidor'; });
+  });
+})();
+</script>
+</body>
+</html>

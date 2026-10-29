@@ -30,10 +30,19 @@ jobs:
       - name: Preparar APK
         run: cp app/build/outputs/apk/release/app-release.apk cumulo-hoops-0.2.${{ github.run_number }}.apk
 
+      - name: Versión para PC (.jar con las mismas pantallas)
+        run: |
+          ./gradlew --no-daemon :pc:jar
+          mkdir -p cumulo-hoops-pc
+          cp pc/build/libs/cumulo-hoops-pc.jar pc/iniciar.bat cumulo-hoops-pc/
+          zip -r cumulo-hoops-pc-0.2.${{ github.run_number }}.zip cumulo-hoops-pc
+
       - uses: actions/upload-artifact@v4
         with:
-          name: cumulo-hoops-apk
-          path: cumulo-hoops-*.apk
+          name: cumulo-hoops
+          path: |
+            cumulo-hoops-*.apk
+            cumulo-hoops-pc-*.zip
 
       - name: Publicar en Releases
         uses: softprops/action-gh-release@v2
@@ -41,7 +50,11 @@ jobs:
           tag_name: v0.2.${{ github.run_number }}
           name: Cúmulo Hoops 0.2.${{ github.run_number }}
           body: |
-            Descargá el APK desde el celular e instalalo (permitir "instalar apps desconocidas").
+            **Celular Android:** descargá el `.apk` desde el celular e instalalo (permitir "instalar apps desconocidas").
+            **PC (opcional):** descargá el `.zip`, descomprimilo y abrí `iniciar.bat` (requiere Java 17 o superior).
+
             Cambios: ${{ github.event.head_commit.message }}
-          files: cumulo-hoops-*.apk
+          files: |
+            cumulo-hoops-*.apk
+            cumulo-hoops-pc-*.zip
           make_latest: true

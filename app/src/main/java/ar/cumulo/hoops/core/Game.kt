@@ -6,9 +6,8 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 /**
- * Estado y reglas del partido. Es la única fuente de verdad: las pantallas solo muestran
- * lo que esta clase publica. Los nombres de los campos JSON coinciden con lo que esperan
- * las páginas de /web, así que no hay que tocar nada del lado del navegador.
+ * Estado y reglas del partido de básquet. Es la única fuente de verdad: las pantallas solo
+ * muestran lo que esta clase publica.
  *
  * Todos los métodos públicos son sincronizados: los llaman a la vez los hilos HTTP y el reloj.
  */
@@ -21,45 +20,68 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
 
     class Player(
         val id: Int, var num: String, var name: String,
-        var onCourt: Boolean = false, var points: Int = 0, var fouls: Int = 0
+        var onCourt: Boolean = false, var points: Int = 0, var fouls: Int = 0,
+        /** Libres, dobles y triples convertidos (para la planilla). */
+        var ft: Int = 0, var fg2: Int = 0, var fg3: Int = 0,
+        var photo: String? = null
     ) : JsonWritable {
         override fun toJson() = linkedMapOf(
-            "id" to id, "num" to num, "name" to name, "onCourt" to onCourt, "points" to points, "fouls" to fouls
+            "id" to id, "num" to num, "name" to name, "onCourt" to onCourt, "points" to points, "fouls" to fouls,
+            "ft" to ft, "fg2" to fg2, "fg3" to fg3, "photo" to photo
         )
+
+        fun statsJson() = linkedMapOf(
+            "id" to id, "onCourt" to onCourt, "points" to points, "fouls" to fouls, "ft" to ft, "fg2" to fg2, "fg3" to fg3
+        )
+
+        fun applyStats(m: Map<String, Any?>) {
+            onCourt = m["onCourt"] == true
+            points = m.int("points"); fouls = m.int("fouls")
+            ft = m.int("ft"); fg2 = m.int("fg2"); fg3 = m.int("fg3")
+        }
 
         companion object {
             fun from(m: Map<String, Any?>) = Player(
-                id = m.num("id")?.toInt() ?: 0,
+                id = m.int("id"),
                 num = m.str("num") ?: "0",
                 name = m.str("name") ?: "",
-                onCourt = m["onCourt"] == true,
-                points = m.num("points")?.toInt() ?: 0,
-                fouls = m.num("fouls")?.toInt() ?: 0
-            )
+                photo = m.str("photo")?.takeIf { MEDIA.matches(it) }
+            ).also { it.applyStats(m) }
         }
     }
 
     class Team(
         var name: String, var short: String, var color: String,
         var score: Int = 0, var fouls: Int = 0, var timeouts: Int = 0,
-        var players: MutableList<Player> = mutableListOf()
+        var players: MutableList<Player> = mutableListOf(),
+        var logo: String? = null,
+        /** Puntos convertidos en cada período (índice 0 = primer cuarto). */
+        var byPeriod: MutableList<Int> = mutableListOf()
     ) : JsonWritable {
         override fun toJson() = linkedMapOf(
-            "name" to name, "short" to short, "color" to color, "score" to score,
-            "fouls" to fouls, "timeouts" to timeouts, "players" to players
+            "name" to name, "short" to short, "color" to color, "logo" to logo, "score" to score,
+            "fouls" to fouls, "timeouts" to timeouts, "byPeriod" to byPeriod, "players" to players
         )
+
+        fun statsJson() = linkedMapOf(
+            "score" to score, "fouls" to fouls, "timeouts" to timeouts, "byPeriod" to byPeriod,
+            "players" to players.map { it.statsJson() }
+        )
+
+        fun applyStats(m: Map<String, Any?>) {
+            score = m.int("score"); fouls = m.int("fouls"); timeouts = m.int("timeouts")
+            byPeriod = (m.list("byPeriod") ?: emptyList()).map { (it as? Number)?.toInt() ?: 0 }.toMutableList()
+        }
 
         companion object {
             @Suppress("UNCHECKED_CAST")
             fun from(m: Map<String, Any?>) = Team(
                 name = m.str("name") ?: "",
                 short = m.str("short") ?: "",
-                color = m.str("color") ?: "#888888",
-                score = m.num("score")?.toInt() ?: 0,
-                fouls = m.num("fouls")?.toInt() ?: 0,
-                timeouts = m.num("timeouts")?.toInt() ?: 0,
-                players = (m.list("players") ?: emptyList()).mapNotNull { (it as? Map<String, Any?>)?.let(Player::from) }.toMutableList()
-            )
+                color = m.str("color")?.takeIf { COLOR.matches(it) } ?: "#888888",
+                players = (m.list("players") ?: emptyList()).mapNotNull { (it as? Map<String, Any?>)?.let(Player::from) }.toMutableList(),
+                logo = m.str("logo")?.takeIf { MEDIA.matches(it) }
+            ).also { it.applyStats(m) }
         }
     }
 
@@ -72,7 +94,10 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
     }
 
     // ------------------------------------------------------------------ estado
+    val sport = "basquet"
     var title = "U13 Tira Blanca"; private set
+    /** Cuándo empezó este partido (para la planilla y lo que se comparte). */
+    var gameDate = now(); private set
     var period = 1; private set
     val periods = 4
     var periodLength = 8 * 60_000L; private set
@@ -114,7 +139,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
 
     private fun addLog(text: String) {
         log.add(0, LogEntry(periodLabel(), fmtClock(rem(clock)), text))
-        while (log.size > 300) log.removeAt(log.size - 1)
+        while (log.size > 500) log.removeAt(log.size - 1)
     }
 
     private fun team(k: String?): Team = when (k) {
@@ -173,11 +198,16 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
 
             "score" -> {
                 val t = team(m.str("team"))
-                val pts = (m.num("pts") ?: 0.0).toInt()
+                val pts = (m.num("pts") ?: 0.0).toInt().coerceIn(-3, 3)
                 if (pts == 0 || t.score + pts < 0) return
                 val p = player(t, m.num("playerId"))
                 t.score += pts
-                p?.let { it.points = max(0, it.points + pts) }
+                while (t.byPeriod.size < period) t.byPeriod.add(0)
+                t.byPeriod[period - 1] += pts
+                p?.let {
+                    it.points = max(0, it.points + pts)
+                    when (pts) { 1 -> it.ft++; 2 -> it.fg2++; 3 -> it.fg3++ }
+                }
                 val sign = if (pts > 0) "+$pts" else "$pts"
                 addLog("${t.short} $sign${p?.let { " · #${it.num} ${it.name}" } ?: ""}  (${home.score}-${away.score})")
             }
@@ -218,6 +248,20 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                 addLog("Cambio de posesión → ${team(possession).short}")
             }
 
+            "team" -> editTeam(team(m.str("team")), m)
+            "player" -> editPlayer(team(m.str("team")), m)
+            "removePlayer" -> {
+                val t = team(m.str("team"))
+                val p = player(t, m.num("playerId")) ?: throw IllegalArgumentException("Jugador inexistente")
+                t.players.remove(p)
+                addLog("Se quitó del plantel ${t.short} · #${p.num} ${p.name}")
+            }
+            "removePhoto" -> {
+                val t = team(m.str("team"))
+                if (m["playerId"] == null) t.logo = null
+                else (player(t, m.num("playerId")) ?: throw IllegalArgumentException("Jugador inexistente")).photo = null
+            }
+
             "buzzer" -> buzzer++
             "config" -> config(m)
             "newGame" -> newGame()
@@ -231,6 +275,31 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         shot.running = clock.running
     }
 
+    private fun editTeam(t: Team, c: Map<String, Any?>) {
+        c.str("name")?.trim()?.takeIf { it.isNotEmpty() }?.let { t.name = it.take(60) }
+        c.str("short")?.trim()?.takeIf { it.isNotEmpty() }?.let { t.short = it.take(4).uppercase() }
+        c.str("color")?.takeIf { COLOR.matches(it) }?.let { t.color = it }
+    }
+
+    /** Alta (sin playerId) o modificación de un jugador: número, nombre y si está en cancha. */
+    private fun editPlayer(t: Team, m: Map<String, Any?>) {
+        val existing = m["playerId"]?.let { player(t, m.num("playerId")) ?: throw IllegalArgumentException("Jugador inexistente") }
+        val num = (m.str("num") ?: existing?.num ?: "").trim().removePrefix("#")
+        if (!NUMBER.matches(num)) throw IllegalArgumentException("El número tiene que tener de 1 a 3 cifras")
+        if (t.players.any { it.num == num && it !== existing }) throw IllegalArgumentException("Ya hay un jugador con el número $num en ${t.short}")
+        val name = (m.str("name") ?: existing?.name ?: "").trim().replace(Regex("\\s+"), " ").take(40).ifEmpty { "Jugador $num" }
+        if (existing == null) {
+            if (t.players.size >= MAX_PLAYERS) throw IllegalArgumentException("Máximo $MAX_PLAYERS jugadores por equipo")
+            val p = Player(nextId++, num, name, onCourt = m["onCourt"] == true)
+            t.players.add(p)
+            addLog("Se agregó al plantel ${t.short} · #${p.num} ${p.name}")
+        } else {
+            existing.num = num
+            existing.name = name
+            (m["onCourt"] as? Boolean)?.let { existing.onCourt = it }
+        }
+    }
+
     private fun config(m: Map<String, Any?>) {
         m.str("title")?.let { title = it.trim().take(60) }
         val fullBefore = !clock.running && clock.remaining == curLength()
@@ -240,9 +309,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         for (side in listOf("home", "away")) {
             val c = m.obj(side) ?: continue
             val t = team(side)
-            c.str("name")?.trim()?.takeIf { it.isNotEmpty() }?.let { t.name = it.take(60) }
-            c.str("short")?.trim()?.takeIf { it.isNotEmpty() }?.let { t.short = it.take(4).uppercase() }
-            c.str("color")?.takeIf { COLOR.matches(it) }?.let { t.color = it }
+            editTeam(t, c)
             c.str("roster")?.let { t.players = parseRoster(it, t.players) }
         }
         addLog("Configuración actualizada")
@@ -253,10 +320,11 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         for (raw in text.lines()) {
             val mt = ROSTER_LINE.matchEntire(raw.trim()) ?: continue
             val num = mt.groupValues[1]
+            if (out.any { it.num == num }) continue
             val name = mt.groupValues[2].trim().take(40).ifEmpty { "Jugador $num" }
             val prev = old.firstOrNull { it.num == num }
             out += prev?.also { it.name = name } ?: Player(nextId++, num, name)
-            if (out.size >= 20) break
+            if (out.size >= MAX_PLAYERS) break
         }
         return out
     }
@@ -264,29 +332,57 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
     private fun newGame() {
         for (t in listOf(home, away)) {
             t.score = 0; t.fouls = 0; t.timeouts = 0
-            t.players.forEach { it.points = 0; it.fouls = 0 }
+            t.byPeriod.clear()
+            t.players.forEach { it.points = 0; it.fouls = 0; it.ft = 0; it.fg2 = 0; it.fg3 = 0 }
         }
         period = 1
         pause(clock); pause(shot)
         set(clock, periodLength)
         set(shot, 24_000)
         possession = null
+        gameDate = now()
         log.clear()
         undoStack.clear()
         addLog("Nuevo partido")
     }
 
+    // ------------------------------------------------------------------ fotos
+    /** Cambia el escudo de un equipo. Solo acepta direcciones generadas por el servidor. */
+    @Synchronized
+    fun setTeamLogo(side: String, url: String?) {
+        require(url == null || MEDIA.matches(url)) { "Imagen inválida" }
+        team(side).logo = url
+    }
+
+    @Synchronized
+    fun setPlayerPhoto(side: String, playerId: Int, url: String?) {
+        require(url == null || MEDIA.matches(url)) { "Imagen inválida" }
+        val p = team(side).players.firstOrNull { it.id == playerId } ?: throw IllegalArgumentException("Jugador inexistente")
+        p.photo = url
+    }
+
+    /** Imágenes que usa el partido; las demás se pueden borrar. */
+    @Synchronized
+    fun mediaInUse(): Set<String> = listOf(home, away).flatMap { t -> listOf(t.logo) + t.players.map { it.photo } }
+        .filterNotNull().map { it.substringAfterLast('/') }.toSet()
+
     // ------------------------------------------------------------------ deshacer
-    // Se deshacen puntos, faltas, tiempos, cambios y posesión; los relojes no.
+    // Se deshacen marcador, faltas, tiempos, cambios y posesión. No se tocan los relojes,
+    // ni los nombres, números o fotos (si después de anotar se corrige un nombre, deshacer
+    // el doble no debe volver a escribirlo mal).
     private fun snapshot(): String = Json.stringify(
-        linkedMapOf("home" to home, "away" to away, "possession" to possession, "log" to log)
+        linkedMapOf("home" to home.statsJson(), "away" to away.statsJson(), "possession" to possession, "log" to log)
     )
 
     @Suppress("UNCHECKED_CAST")
     private fun restore(snap: String) {
         val m = Json.parseObject(snap)
-        home = Team.from(m.obj("home")!!)
-        away = Team.from(m.obj("away")!!)
+        for ((side, t) in listOf("home" to home, "away" to away)) {
+            val s = m.obj(side) ?: continue
+            t.applyStats(s)
+            val byId = (s.list("players") ?: emptyList()).mapNotNull { it as? Map<String, Any?> }.associateBy { it.int("id") }
+            for (p in t.players) byId[p.id]?.let(p::applyStats)
+        }
         possession = m.str("possession")
         log = ArrayList((m.list("log") ?: emptyList()).mapNotNull { (it as? Map<String, Any?>)?.let(LogEntry::from) })
     }
@@ -314,7 +410,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
     // ------------------------------------------------------------------ JSON
     private fun stateMap(forSave: Boolean): Map<String, Any?> {
         val m = linkedMapOf<String, Any?>(
-            "title" to title, "period" to period, "periods" to periods,
+            "sport" to sport, "title" to title, "gameDate" to gameDate, "period" to period, "periods" to periods,
             "periodLength" to periodLength, "otLength" to otLength,
             "clock" to if (forSave) Clock(false, rem(clock)) else clock,
             "shot" to if (forSave) Clock(false, rem(shot)) else shot,
@@ -343,6 +439,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         home = newHome
         away = newAway
         m.str("title")?.let { title = it }
+        m.num("gameDate")?.let { gameDate = it.toLong() }
         m.num("period")?.let { period = it.toInt().coerceIn(1, 12) }
         m.num("periodLength")?.let { periodLength = it.toLong() }
         m.num("otLength")?.let { otLength = it.toLong() }
@@ -359,9 +456,14 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
     }
 
     companion object {
+        const val MAX_PLAYERS = 20
         private val UNDOABLE = setOf("score", "foul", "timeout", "sub", "possession", "swapPossession")
         private val COLOR = Regex("^#[0-9a-fA-F]{6}$")
+        private val NUMBER = Regex("^\\d{1,3}$")
         private val ROSTER_LINE = Regex("^#?(\\d{1,3})\\s*[-.)]?\\s*(.*)$")
+        /** Direcciones de imágenes guardadas por el servidor (ver MediaStore). */
+        val MEDIA = Regex("^/media/[0-9a-f]{16,40}\\.(jpg|png)$")
     }
 }
 
+private fun Map<String, Any?>.int(key: String): Int = num(key)?.toInt() ?: 0

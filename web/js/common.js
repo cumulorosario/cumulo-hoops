@@ -9,21 +9,49 @@
   var lastMsg = 0;
   H.state = null;
 
-  // ---- conexión en tiempo real
-  H.connect = function (onState, onStatus) {
-    if (!w.EventSource) { alert('Este navegador no soporta EventSource.'); return; }
-    var es = new EventSource('/events');
-    function status(ok) { if (onStatus) onStatus(ok); }
-    es.onmessage = function (e) {
-      var s;
-      try { s = JSON.parse(e.data); } catch (err) { return; }
-      offset = s.now - Date.now();
-      lastMsg = Date.now();
-      H.state = s;
-      status(true);
-      onState(s);
+  // ---- acceso: si el servidor pide contraseña, ir a la pantalla de ingreso
+  H.goLogin = function (screen) {
+    var next = location.pathname + location.search;
+    location.href = '/login?p=' + encodeURIComponent(screen || 'operador') + '&next=' + encodeURIComponent(next);
+  };
+  function checkAccess(screen, onOk) {
+    var x = new XMLHttpRequest();
+    x.open('GET', '/api/auth');
+    x.onload = function () {
+      try {
+        var a = JSON.parse(x.responseText);
+        var s = a.screens && a.screens[screen];
+        if (s && !s.allowed) { H.goLogin(screen); return; }
+      } catch (e) { /* sigue intentando */ }
+      onOk();
     };
-    es.onerror = function () { status(false); };
+    x.onerror = onOk;
+    x.send();
+  }
+
+  // ---- conexión en tiempo real (screen = pantalla que pide permiso: tablero, posesion, operador)
+  H.connect = function (onState, onStatus, screen) {
+    if (!w.EventSource) { alert('Este navegador no soporta EventSource.'); return; }
+    var es = null;
+    function status(ok) { if (onStatus) onStatus(ok); }
+    function open() {
+      es = new EventSource('/events');
+      es.onmessage = function (e) {
+        var s;
+        try { s = JSON.parse(e.data); } catch (err) { return; }
+        offset = s.now - Date.now();
+        lastMsg = Date.now();
+        H.state = s;
+        status(true);
+        onState(s);
+      };
+      es.onerror = function () {
+        status(false);
+        // Cerrada del todo (por ejemplo, cambió la contraseña): verificar acceso y reconectar.
+        if (es.readyState === 2) setTimeout(function () { checkAccess(screen || 'tablero', open); }, 1500);
+      };
+    }
+    open();
     // El servidor manda el estado cada 5 s; si pasan 12 s sin nada, lo marcamos desconectado.
     setInterval(function () { if (Date.now() - lastMsg > 12000) status(false); }, 3000);
   };
@@ -63,16 +91,34 @@
     });
   };
 
+  // Iniciales para cuando no hay foto o escudo
+  H.initials = function (name) {
+    // Solo palabras que empiezan con letra ("Jugador 10" → "J", no "J1")
+    var p = String(name || '').trim().split(/\s+/).filter(function (x) { return !/^[\d#]/.test(x); });
+    return ((p[0] || '').charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase() || '?';
+  };
+
   // ---- envío de acciones (lo usa el operador)
+  function handle(r) {
+    return r.json().catch(function () { return {}; }).then(function (j) {
+      if (r.status === 401 && j.login) { H.goLogin('operador'); throw new Error('Hace falta la contraseña'); }
+      if (!r.ok || j.ok === false) throw new Error(j.error || 'Error ' + r.status);
+      return j;
+    });
+  }
   H.send = function (type, data) {
     data = data || {};
     data.type = type;
     return fetch('/api/action', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (!j.ok) throw new Error(j.error || 'Error');
-      return j;
-    });
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), credentials: 'same-origin'
+    }).then(handle);
+  };
+  H.post = function (url, body, type) {
+    return fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': type || 'application/json' },
+      body: type ? body : JSON.stringify(body || {})
+    }).then(handle);
   };
 
   // ---- chicharra (Web Audio, sin archivos)
@@ -127,7 +173,7 @@
     el.addEventListener('click', go);
     document.addEventListener('keydown', go);
     try { el.focus(); } catch (e) { /* nada */ }
-    // Un segundo toque en cualquier lado vuelve a pedir pantalla completa
+    // Doble toque en cualquier lado vuelve a pedir pantalla completa
     document.addEventListener('dblclick', function () { H.fullscreen(); });
   };
 

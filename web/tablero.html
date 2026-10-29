@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tablero · Cúmulo Hoops</title>
+<link rel="icon" href="/favicon.png">
 <style>
   :root { --bg:#04060b; --panel:#0b101c; --line:#1a2236; --amber:#fbbf24; --muted:#8090a8;
           --mono: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
@@ -17,8 +18,13 @@
   .team { flex: 1; background: var(--panel); border: .15vw solid var(--line); border-top: 1vh solid var(--c, #888);
           border-radius: 1.6vw; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 2.5vh 1vw; }
   .center { flex: 1.15; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 1.5vw; }
-  .tname { font-size: 2.6vw; font-weight: 800; text-align: center; line-height: 1.12; height: 6vw;
+  .thead { display: flex; align-items: center; justify-content: center; height: 7.5vw; width: 100%; padding: 0 .5vw; }
+  .crest { flex: none; width: 6.5vw; height: 6.5vw; margin-right: 1.2vw; display: none; }
+  .crest img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .crest.on { display: block; }
+  .tname { font-size: 2.5vw; font-weight: 800; text-align: center; line-height: 1.12; max-height: 7.5vw;
            display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .crest.on + .tname { text-align: left; justify-content: flex-start; }
   .score { font-family: var(--mono); font-weight: 700; font-size: 14vw; line-height: 1; color: var(--c, #fff); text-shadow: 0 0 2.5vw; }
   .stats { display: flex; text-align: center; }
   .stats > div { margin: 0 1.8vw; }
@@ -39,12 +45,17 @@
   #arrow-home { border-right: 3.4vw solid var(--hc, #fff); }
   #arrow-away { border-left: 3.4vw solid var(--ac, #fff); }
   .arrow.on { opacity: 1; }
-  .bottom { display: flex; margin-top: 2vh; height: 12vh; }
+  .bottom { display: flex; margin-top: 2vh; height: 12vh; align-items: flex-start; }
   .oncourt { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; }
-  .oncourt + .oncourt { margin-left: 1.5vw; justify-content: flex-end; }
+  #away-players { justify-content: flex-end; }
+  .brandbox { flex: none; width: 23vw; margin: 0 1vw; display: flex; align-items: center; justify-content: center;
+              background: rgba(111,153,202,.07); border: .12vw solid rgba(111,153,202,.28); border-radius: 1vw; padding: 1vh 1.2vw; }
+  .brandbox span { font-size: .8vw; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; text-align: right; line-height: 1.35; margin-right: 1vw; }
+  .brandbox img { height: 4.6vh; width: auto; display: block; }
   .chip { background: var(--panel); border: .12vw solid var(--line); border-radius: .6vw; padding: .5vh .7vw; margin: 0 .5vw .8vh 0;
           font-size: 1.35vw; display: flex; align-items: center; white-space: nowrap; }
   .chip b { color: var(--c); font-family: var(--mono); margin-right: .5vw; }
+  .chip .ph { width: 2.1vw; height: 2.1vw; border-radius: 50%; object-fit: cover; margin-right: .5vw; border: .12vw solid var(--c); }
   .chip .nm { max-width: 11vw; overflow: hidden; text-overflow: ellipsis; }
   .dots { margin-left: .6vw; }
   .dots i { display: inline-block; width: .7vw; height: .7vw; border-radius: 50%; background: #263049; margin-left: .2vw; }
@@ -63,7 +74,7 @@
   <div class="top" id="title"></div>
   <div class="main">
     <div class="team" id="home">
-      <div class="tname" id="home-name"></div>
+      <div class="thead"><div class="crest" id="home-crest"></div><div class="tname" id="home-name"></div></div>
       <div class="score" id="home-score">0</div>
       <div class="stats">
         <div><small>FALTAS</small><b id="home-fouls">0</b></div>
@@ -82,7 +93,7 @@
       <div class="shot-label">POSESIÓN</div>
     </div>
     <div class="team" id="away">
-      <div class="tname" id="away-name"></div>
+      <div class="thead"><div class="crest" id="away-crest"></div><div class="tname" id="away-name"></div></div>
       <div class="score" id="away-score">0</div>
       <div class="stats">
         <div><small>FALTAS</small><b id="away-fouls">0</b></div>
@@ -93,6 +104,7 @@
   </div>
   <div class="bottom">
     <div class="oncourt" id="home-players"></div>
+    <div class="brandbox"><span>Desarrollado<br>por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div>
     <div class="oncourt" id="away-players"></div>
   </div>
 </div>

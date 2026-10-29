@@ -8,6 +8,12 @@
   function renderTeam(side, t) {
     $(side).style.setProperty('--c', t.color);
     $(side + '-name').textContent = t.name;
+    var cr = $(side + '-crest');
+    if (cr.getAttribute('data-src') !== (t.logo || '')) {
+      cr.setAttribute('data-src', t.logo || '');
+      cr.innerHTML = t.logo ? '<img src="' + H.esc(t.logo) + '" alt="">' : '';
+      cr.className = 'crest' + (t.logo ? ' on' : '');
+    }
     $(side + '-score').textContent = t.score;
     $(side + '-fouls').textContent = t.fouls;
     $(side + '-to').textContent = t.timeouts;
@@ -18,7 +24,8 @@
     for (var i = 0; i < on.length; i++) {
       var p = on[i], dots = '';
       for (var k = 0; k < 5; k++) dots += '<i class="' + (k < p.fouls ? (p.fouls >= 5 ? 'f x' : 'f') : '') + '"></i>';
-      html += '<div class="chip"><b>' + H.esc(p.num) + '</b><span class="nm">' + H.esc(p.name) + '</span><span class="dots">' + dots + '</span></div>';
+      var ph = p.photo ? '<img class="ph" src="' + H.esc(p.photo) + '" alt="">' : '';
+      html += '<div class="chip">' + ph + '<b>' + H.esc(p.num) + '</b><span class="nm">' + H.esc(p.name) + '</span><span class="dots">' + dots + '</span></div>';
     }
     var el = $(side + '-players');
     el.style.setProperty('--c', t.color);
@@ -54,5 +61,5 @@
 
   setInterval(tick, 50);
   H.setupOverlay('overlay');
-  H.connect(render, function (ok) { $('conn').style.display = ok ? 'none' : 'block'; });
+  H.connect(render, function (ok) { $('conn').style.display = ok ? 'none' : 'block'; }, 'tablero');
 })();

@@ -1,0 +1,16 @@
+/* Marca Cúmulo Ingeniería, compartida por todas las pantallas */
+:root { --cumulo: #6f99ca; --cumulo-dim: #4d6f97; }
+
+/* Encabezado: isotipo + nombre de la app + "desarrollado por" */
+.cb-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cb-brand img { width: 38px; height: 38px; flex: none; }
+.cb-brand b { display: block; font-size: 17px; line-height: 1.15; white-space: nowrap; }
+.cb-brand small { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #8391a8; white-space: nowrap; }
+.cb-brand small em { font-style: normal; color: var(--cumulo); font-weight: 700; }
+
+/* Pie: "Desarrollado por" + logo completo, como en la muestra */
+.cb-foot { display: flex; justify-content: center; padding: 18px 12px 22px; }
+.cb-card { display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px; border-radius: 14px;
+           background: rgba(111,153,202,.07); border: 1px solid rgba(111,153,202,.25); text-decoration: none; color: inherit; }
+.cb-card span { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #8391a8; line-height: 1.3; text-align: right; }
+.cb-card img { height: 34px; width: auto; display: block; }
