@@ -50,23 +50,6 @@ button.active { background: var(--amber); color: #111; border-color: var(--amber
 .pl-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-end; margin: 14px 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
 .t-oncourt { white-space: nowrap; }
 .t-oncourt.bad { color: var(--amber); font-weight: 700; }
-.pl { display: grid; grid-template-columns: 34px 34px 1fr 30px 34px repeat(4, 44px); gap: 5px; align-items: center; padding: 4px; border-radius: 10px; }
-.pl + .pl { border-top: 1px solid #141c2e; }
-.pl.on { background: #0f1a2e; }
-.pl .pin { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 14px; color: var(--muted); }
-.pl.on .pin { background: var(--c); border-color: var(--c); color: #000; }
-.pl .pedit { display: flex; align-items: center; gap: 7px; min-width: 0; background: none; border: 0; padding: 4px 2px; text-align: left; font-weight: 400; }
-.pl .pedit:hover .pname { text-decoration: underline; text-decoration-color: #33415e; }
-.pnum { font-family: var(--mono); font-weight: 800; color: var(--c); min-width: 1.6em; text-align: right; }
-.pname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
-.pl:not(.on) .pname { color: var(--muted); }
-.pts { font-family: var(--mono); text-align: center; font-weight: 700; }
-.pf { font-family: var(--mono); text-align: center; font-size: 13px; color: var(--muted); }
-.pf.f3 { color: #fbbf24; } .pf.f4 { color: #fb923c; font-weight: 800; } .pf.f5 { color: #fff; background: var(--red); border-radius: 6px; font-weight: 800; }
-.pl.out .pname { text-decoration: line-through; }
-.pl > button:not(.pin):not(.pedit) { padding: 8px 0; font-weight: 700; }
-.pl .fb { color: #fca5a5; border-color: #4c1d24; }
-.add-player { width: 100%; margin-top: 8px; border-style: dashed; color: var(--muted); }
 .empty { color: var(--muted); text-align: center; padding: 20px; }
 
 /* fotos: avatar de jugador (círculo) y escudo */
@@ -78,10 +61,6 @@ button.active { background: var(--amber); color: #111; border-color: var(--amber
 .crest img { object-fit: contain; }
 .avatar.big { width: 112px; height: 112px; font-size: 34px; }
 .crest.big { width: 120px; height: 120px; font-size: 34px; }
-button.photo-btn { padding: 0; border: 0; background: none; border-radius: 50%; }
-.t-head .crest-btn { padding: 0; border: 0; background: none; border-radius: 12px; }
-.t-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 0; text-align: left; }
-.t-title .pencil { color: var(--muted); font-size: 14px; }
 @media (max-width: 480px) {
   .t-score { font-size: 48px; }
   .crest { width: 44px; height: 44px; }
@@ -148,24 +127,10 @@ a.btn { color: inherit; text-decoration: none; background: var(--panel2); border
   .keys { display: none; }
   .bar-actions > * { font-size: 12px; }
 }
-/* Columna angosta (celular, tablet o notebook): cada jugador en dos renglones, botones grandes */
-.team { container-type: inline-size; }
 @media (max-width: 560px) {
   .bar .cb-brand small { display: none; }
   .pl-head span:first-child { font-size: 11px; }
 }
-@container (max-width: 500px) {
-  .pl { grid-template-columns: repeat(12, 1fr); gap: 5px; padding: 6px 4px; }
-  .pl .pin { grid-column: 1 / span 2; justify-self: start; width: 38px; height: 38px; }
-  .pl .photo-btn { grid-column: 3 / span 2; justify-self: start; }
-  .pl .photo-btn .avatar { width: 38px; height: 38px; }
-  .pl .pedit { grid-column: 5 / span 5; }
-  .pname { font-size: 15px; }
-  .pts { grid-column: 10 / span 1; }
-  .pf { grid-column: 11 / span 2; }
-  .pl > button:not(.pin):not(.pedit):not(.photo-btn) { grid-row: 2; grid-column: span 3; padding: 11px 0; font-size: 16px; }
-}
-
 /* edición de equipo y jugador */
 #dlg-team, #dlg-player { width: min(520px, 96vw); }
 .photo-edit { display: flex; align-items: center; gap: 16px; }
@@ -200,3 +165,48 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .ph-actions { display: flex; gap: 8px; align-items: center; }
 .ph-actions span { flex: 1; }
 .busy { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 60; font-weight: 700; }
+
+/* ---------- panel del operador: jugador seleccionado y 5 en cancha ---------- */
+.pnum { font-family: var(--mono); font-weight: 800; color: var(--c); }
+.pname { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-head .t-name { flex: 1; min-width: 0; }
+.target { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border-radius: 10px;
+  background: var(--panel2); border: 1px dashed var(--line); font-size: 14px; color: var(--muted); min-height: 42px; }
+.target span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.target b { color: var(--text); }
+.target.has { border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 14%, var(--panel2)); color: var(--text); }
+.target .clear-sel { display: none; padding: 2px 9px; font-size: 13px; }
+.target.has .clear-sel { display: block; }
+.row4 .foul-btn { color: #fca5a5; border-color: #7f1d1d; font-size: 17px; }
+.row-sub { display: grid; grid-template-columns: 1fr 64px; gap: 8px; margin-bottom: 10px; }
+.row-sub .sub-btn { font-weight: 800; font-size: 16px; padding: 12px 0; color: #93c5fd; border-color: #1e3a5f; }
+.players { display: flex; flex-direction: column; gap: 6px; }
+.oc { display: grid; grid-template-columns: 40px 34px 1fr 48px 40px; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px; text-align: left; border-radius: 12px; background: #0f1a2e; border: 2px solid transparent; font-weight: 400; }
+.oc .avatar { width: 38px; height: 38px; font-size: 13px; }
+.oc .pnum { font-size: 18px; text-align: right; }
+.oc .pname { font-size: 16px; }
+.oc .pts, .oc .pf { font-size: 17px; font-weight: 800; text-align: center; }
+.oc small { font-size: 10px; color: var(--muted); font-weight: 600; margin-left: 2px; }
+.oc.sel { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, #0f1a2e); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); }
+.oc.sel .pname { font-weight: 800; }
+.oc.out .pname { text-decoration: line-through; }
+.oc.empty-slot { display: block; text-align: center; color: var(--muted); border: 1px dashed var(--line); background: none; padding: 14px; }
+.pf.f3 { color: #fbbf24; } .pf.f4 { color: #fb923c; } .pf.f5 { color: #fff; background: var(--red); border-radius: 6px; }
+
+/* ventana de cambio */
+#dlg-sub { width: min(480px, 96vw); }
+.sub-box { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.sub-out { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); }
+.sub-out .muted { margin-left: auto; }
+.tag-out, .sub-label::before { font-size: 11px; font-weight: 900; letter-spacing: .1em; padding: 3px 7px; border-radius: 6px; }
+.tag-out { background: #7f1d1d; color: #fecaca; }
+.sub-label { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.sub-label::before { content: "ENTRA"; background: #14532d; color: #bbf7d0; }
+.bench { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow: auto; }
+.bench-p { display: grid; grid-template-columns: 38px 34px 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; font-weight: 400; }
+.bench-p .avatar { width: 38px; height: 38px; }
+.bench-p .pnum { font-size: 17px; text-align: right; }
+.bench-p .pname { font-size: 16px; }
+.bench-p:hover { border-color: var(--c); }
+.bench-p.out { opacity: .6; }

@@ -6,6 +6,7 @@ Tablero de básquet para clubes, desarrollado por **Cúmulo Ingeniería**. Un **
 |---|---|---|---|
 | Conectar (QR y contraseñas) | `http://IP:3000` | — | Se abre sola en la app |
 | Mesa de control | `http://IP:3000/operador` | operador | Celular, tablet o PC (uno o varios) |
+| Nómina | `http://IP:3000/nomina` | operador | Planteles, clubes y fotos |
 | Estadísticas | `http://IP:3000/estadisticas` | operador | Planilla y compartir |
 | Tablero principal | `http://IP:3000/tablero` | tablero | TV grande |
 | Reloj de 24 | `http://IP:3000/posesion` | reloj de 24 | TVs chicas (`?solo` = solo el número, `?mudo` = sin chicharra) |
@@ -33,11 +34,21 @@ Tablero de básquet para clubes, desarrollado por **Cúmulo Ingeniería**. Un **
 - Cada dispositivo la ingresa una vez y queda habilitado, incluso si se reinicia el servidor. Si se cambia una contraseña, los dispositivos que usaban la anterior la tienen que volver a ingresar.
 - Se guardan cifradas (hash con sal). Después de 8 intentos fallidos, el dispositivo queda bloqueado 5 minutos.
 
-## Equipos, jugadores y fotos
+## Mesa de control
 
-- **Escudo y datos del club:** tocá el escudo o el nombre del equipo en la mesa de control → *Foto del escudo* (cámara o galería), nombre, sigla y color.
-- **Jugadores:** tocá el nombre o la foto de un jugador para cambiar número, nombre, foto o si está en cancha. *+ Agregar jugador* suma uno nuevo (hasta 20 por equipo). También se puede pegar el plantel entero en ⚙ Configurar.
-- Las fotos se recortan en el mismo dispositivo antes de enviarse y quedan guardadas **solo en el celular servidor**; no se suben a internet.
+- Cada equipo muestra solo los **5 jugadores en cancha**. Tocá uno para **seleccionarlo**: los botones **+1, +2, +3 y Falta** se le imputan a él hasta que elijas otro (o ✕ para anotar al equipo sin jugador).
+- **⇄ Cambio**: sale el jugador seleccionado y se abre una ventana para elegir al reemplazante entre los suplentes. Se deshace con un solo *Deshacer*. Si faltan jugadores en cancha aparece *+ Ingresar jugador*.
+- La selección es propia de cada dispositivo: si hay dos operadores, cada uno tiene la suya.
+
+## Nómina y formaciones
+
+**📋 Nómina** (desde la mesa de control) es donde se cargan los planteles completos y los clubes:
+
+- escudo (foto con la cámara o de la galería), nombre, sigla y color de cada club;
+- jugadores: número, nombre, foto y si arranca en cancha (●); agregar, editar o quitar (hasta 20 por equipo);
+- también se puede pegar el plantel entero, un jugador por línea.
+
+Las fotos se recortan en el mismo dispositivo antes de enviarse y quedan guardadas **solo en el celular servidor**; no se suben a internet.
 
 ## Estadísticas
 

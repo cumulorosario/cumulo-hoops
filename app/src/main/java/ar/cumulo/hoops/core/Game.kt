@@ -241,6 +241,18 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                 addLog("${if (p.onCourt) "Ingresa" else "Sale"} ${t.short} · #${p.num} ${p.name}")
             }
 
+            "swap" -> {
+                // Cambio en un solo paso: sale un jugador en cancha y entra uno del banco.
+                val t = team(m.str("team"))
+                val out = player(t, m.num("outId")) ?: throw IllegalArgumentException("Elegí el jugador que sale")
+                val inn = player(t, m.num("inId")) ?: throw IllegalArgumentException("Elegí el jugador que entra")
+                require(out.onCourt) { "#${out.num} no está en cancha" }
+                require(!inn.onCourt) { "#${inn.num} ya está en cancha" }
+                out.onCourt = false
+                inn.onCourt = true
+                addLog("Cambio ${t.short}: sale #${out.num} ${out.name}, entra #${inn.num} ${inn.name}")
+            }
+
             "possession" -> possession = m.str("team").takeIf { it == "home" || it == "away" }
             "swapPossession" -> {
                 possession = if (possession == "home") "away" else "home"
@@ -457,7 +469,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
 
     companion object {
         const val MAX_PLAYERS = 20
-        private val UNDOABLE = setOf("score", "foul", "timeout", "sub", "possession", "swapPossession")
+        private val UNDOABLE = setOf("score", "foul", "timeout", "sub", "swap", "possession", "swapPossession")
         private val COLOR = Regex("^#[0-9a-fA-F]{6}$")
         private val NUMBER = Regex("^\\d{1,3}$")
         private val ROSTER_LINE = Regex("^#?(\\d{1,3})\\s*[-.)]?\\s*(.*)$")

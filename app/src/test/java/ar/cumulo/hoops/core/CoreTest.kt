@@ -283,6 +283,21 @@ class CoreTest {
     }
 
     @Test
+    fun cambio_de_jugador_en_un_paso() {
+        val g = game()
+        val sale = g.home.players.first { it.onCourt }
+        val entra = g.home.players.first { !it.onCourt }
+        g.act("type" to "swap", "team" to "home", "outId" to sale.id, "inId" to entra.id)
+        assertFalse(sale.onCourt)
+        assertTrue(entra.onCourt)
+        assertEquals(5, g.home.players.count { it.onCourt })
+        try { g.act("type" to "swap", "team" to "home", "outId" to sale.id, "inId" to entra.id); throw AssertionError("debía rechazar") } catch (_: IllegalArgumentException) { }
+        g.act("type" to "undo") // un solo deshacer revierte las dos cosas
+        assertTrue(sale.onCourt)
+        assertFalse(entra.onCourt)
+    }
+
+    @Test
     fun servidor_http_y_eventos() {
         val web = File("../web").takeIf { it.isDirectory } ?: File("web")
         val server = WebServer(Game(), { p -> File(web, p).takeIf { it.isFile }?.readBytes() }, port = 0)

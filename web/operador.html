@@ -14,11 +14,12 @@
   <div class="conn" id="conn"><i></i><span>Conectando…</span></div>
   <div class="urls" id="urls"></div>
   <div class="bar-actions">
+    <a class="btn" href="/nomina">📋 Nómina</a>
     <a class="btn" href="/estadisticas">📊 Estadísticas</a>
     <a class="btn" href="/">📱 Conectar</a>
     <button data-a="undo" title="Ctrl+Z">↶ Deshacer</button>
     <button data-a="buzzer" class="warn" title="B">📢 Chicharra</button>
-    <button id="open-config">⚙ Configurar</button>
+    <button id="open-config">⚙ Partido</button>
   </div>
 </header>
 
@@ -74,71 +75,31 @@
 
 <footer class="cb-foot"><div class="cb-card"><span>Desarrollado<br>por</span><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"></div></footer>
 
-<!-- Equipo: nombre, sigla, color y escudo -->
-<dialog id="dlg-team">
-  <form method="dialog" id="team-form">
-    <h2>Equipo</h2>
-    <div class="photo-edit">
-      <div class="crest big" id="team-crest"></div>
-      <div class="photo-btns">
-        <button type="button" id="team-photo" class="primary">📷 Foto del escudo</button>
-        <button type="button" id="team-photo-rm" class="danger">Quitar escudo</button>
-        <small>Sacale una foto al escudo o elegila de la galería.</small>
-      </div>
-    </div>
-    <label>Nombre del club<input name="name" maxlength="60" required></label>
-    <div class="two">
-      <label>Sigla (hasta 4 letras)<input name="short" maxlength="4" required></label>
-      <label>Color<input type="color" name="color"></label>
-    </div>
-    <div class="dlg-actions"><span></span><button type="button" data-close>Cancelar</button><button type="submit" class="primary">Guardar</button></div>
-  </form>
-</dialog>
-
-<!-- Jugador: número, nombre, foto -->
-<dialog id="dlg-player">
-  <form method="dialog" id="player-form">
-    <h2 id="player-title">Jugador</h2>
-    <div class="photo-edit">
-      <div class="avatar big" id="player-photo-view"></div>
-      <div class="photo-btns">
-        <button type="button" id="player-photo" class="primary">📷 Foto del jugador</button>
-        <button type="button" id="player-photo-rm" class="danger">Quitar foto</button>
-        <small id="player-photo-hint"></small>
-      </div>
-    </div>
-    <div class="two num-name">
-      <label>Número<input name="num" inputmode="numeric" pattern="#?[0-9]{1,3}" maxlength="4" required></label>
-      <label>Nombre y apellido<input name="name" maxlength="40" autocomplete="off"></label>
-    </div>
-    <label class="check"><input type="checkbox" name="onCourt"> En cancha</label>
-    <div class="pstats" id="player-stats"></div>
+<!-- Cambio: elegir quién entra -->
+<dialog id="dlg-sub">
+  <div class="sub-box">
+    <h2 id="sub-title">Cambio</h2>
+    <div class="sub-out" id="sub-out"></div>
+    <div class="sub-label" id="sub-label">Elegí el reemplazante</div>
+    <div class="bench" id="bench"></div>
     <div class="dlg-actions">
-      <button type="button" id="player-remove" class="danger">Quitar del plantel</button>
+      <button type="button" id="sub-only-out" class="ghost-btn">Sacar sin reemplazante</button>
       <span></span>
       <button type="button" data-close>Cancelar</button>
-      <button type="submit" class="primary">Guardar</button>
     </div>
-  </form>
+  </div>
 </dialog>
 
-<!-- Configuración general -->
+<!-- Datos del partido -->
 <dialog id="config">
   <form id="config-form">
-    <h2>Configuración del partido</h2>
+    <h2>Partido</h2>
     <label>Título / categoría<input name="title" maxlength="60"></label>
     <div class="two">
       <label>Minutos por cuarto<input name="periodMinutes" type="number" min="1" max="30" step="0.5"></label>
       <label>Minutos de suplementario<input name="otMinutes" type="number" min="1" max="15" step="0.5"></label>
     </div>
-    <details>
-      <summary>Cargar planteles completos (pegar lista)</summary>
-      <p class="muted">Un jugador por línea: número y nombre (ej. <code>7 Juan Pérez</code>). Los jugadores con el mismo número conservan sus puntos y su foto. Para editar uno solo, tocá su nombre en la mesa de control.</p>
-      <div class="two">
-        <label>Local<textarea name="home_roster" rows="10"></textarea></label>
-        <label>Visitante<textarea name="away_roster" rows="10"></textarea></label>
-      </div>
-    </details>
+    <p class="muted">Clubes, jugadores, números y fotos se cargan en <a href="/nomina">📋 Nómina</a>.</p>
     <div class="dlg-actions">
       <button type="button" id="new-game" class="danger">Nuevo partido</button>
       <button type="button" id="logout" class="ghost-btn" hidden>Cerrar sesión</button>
@@ -151,7 +112,6 @@
 
 <div id="toast"></div>
 <script src="/js/common.js"></script>
-<script src="/js/fotos.js"></script>
 <script src="/js/operador.js"></script>
 </body>
 </html>

@@ -4,18 +4,33 @@
   const $ = (id) => document.getElementById(id);
   let S = null;
 
+  // Jugador seleccionado en cada equipo: lo que se anota (+1/+2/+3, falta) se le imputa a él.
+  // Es propio de este dispositivo: cada operador tiene su selección.
+  const selected = { home: null, away: null };
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('hoops-sel') || '{}');
+    if (saved.home) selected.home = saved.home;
+    if (saved.away) selected.away = saved.away;
+  } catch (e) { /* sin almacenamiento */ }
+  function saveSel() { try { sessionStorage.setItem('hoops-sel', JSON.stringify(selected)); } catch (e) { /* nada */ } }
+
   // ---------- esqueleto de cada equipo
   const skeleton = `
     <div class="t-head">
-      <button class="crest-btn" data-edit-team title="Escudo y datos del equipo"><div class="crest t-crest"></div></button>
-      <button class="t-title" data-edit-team title="Editar equipo"><span class="t-name"></span><span class="pencil">✎</span></button>
+      <div class="crest t-crest"></div>
+      <div class="t-name"></div>
       <div class="t-score">0</div>
     </div>
+    <div class="target"><span class="t-target"></span><button class="clear-sel" data-clear title="Anotar sin jugador">✕</button></div>
     <div class="row4">
-      <button data-a="score" data-pts="1">+1</button>
-      <button data-a="score" data-pts="2">+2</button>
-      <button data-a="score" data-pts="3" class="three">+3</button>
-      <button data-a="score" data-pts="-1" class="ghost">−1</button>
+      <button data-a="score" data-pts="1" data-sel>+1</button>
+      <button data-a="score" data-pts="2" data-sel>+2</button>
+      <button data-a="score" data-pts="3" data-sel class="three">+3</button>
+      <button data-a="foul" data-delta="1" data-sel class="foul-btn">Falta</button>
+    </div>
+    <div class="row-sub">
+      <button class="sub-btn" data-sub>⇄ Cambio</button>
+      <button data-a="score" data-pts="-1" data-sel class="ghost" title="Corrige un punto del jugador seleccionado">−1</button>
     </div>
     <div class="counters">
       <div class="counter"><span>Faltas equipo</span><em class="t-bonus">BONUS</em>
@@ -23,14 +38,15 @@
       <div class="counter"><span>Tiempos muertos</span>
         <div><button data-a="timeout" data-delta="-1">−</button><b class="t-to">0</b><button data-a="timeout" data-delta="1">+</button></div></div>
     </div>
-    <div class="pl-head"><span>● entra/sale · tocá el nombre para editar</span><span class="t-oncourt"></span></div>
-    <div class="players"></div>
-    <button class="add-player" data-add-player>+ Agregar jugador</button>`;
+    <div class="pl-head"><span>En cancha · tocá para seleccionar</span><span class="t-oncourt"></span></div>
+    <div class="players"></div>`;
   for (const side of ['home', 'away']) $(side).innerHTML = skeleton;
 
   const img = (url, alt) => url ? `<img src="${H.esc(url)}" alt="${H.esc(alt || '')}" loading="lazy">` : '';
   const avatar = (p) => `<div class="avatar">${p.photo ? img(p.photo, p.name) : H.esc(H.initials(p.name))}</div>`;
   const crest = (t) => t.logo ? img(t.logo, t.name) : H.esc(t.short || H.initials(t.name));
+  const byNum = (a, b) => parseInt(a.num, 10) - parseInt(b.num, 10);
+  const findP = (side, id) => S && S[side].players.find(p => p.id === id);
 
   // ---------- render
   function renderTeam(side, t) {
@@ -42,24 +58,32 @@
     el.querySelector('.t-fouls').textContent = t.fouls;
     el.querySelector('.t-to').textContent = t.timeouts;
     el.querySelector('.t-bonus').classList.toggle('show', t.fouls >= 4);
-    const on = t.players.filter(p => p.onCourt).length;
+
+    const on = t.players.filter(p => p.onCourt).sort(byNum);
+    // Si el seleccionado ya no está en cancha (salió, lo quitaron), se deselecciona
+    if (selected[side] && !on.some(p => p.id === selected[side])) { selected[side] = null; saveSel(); }
+    const sel = findP(side, selected[side]);
+
     const oc = el.querySelector('.t-oncourt');
-    oc.textContent = `En cancha: ${on}`;
-    oc.classList.toggle('bad', on !== 5);
-    const list = t.players.slice().sort((a, b) => (b.onCourt - a.onCourt) || (parseInt(a.num, 10) - parseInt(b.num, 10)));
-    el.querySelector('.players').innerHTML = list.map(p => `
-      <div class="pl${p.onCourt ? ' on' : ''}${p.fouls >= 5 ? ' out' : ''}">
-        <button class="pin" data-a="sub" data-pid="${p.id}" title="${p.onCourt ? 'Sacar' : 'Ingresar'}">${p.onCourt ? '●' : '○'}</button>
-        <button class="photo-btn" data-edit-player="${p.id}" title="Foto y datos">${avatar(p)}</button>
-        <button class="pedit" data-edit-player="${p.id}" title="Editar"><span class="pnum">${H.esc(p.num)}</span><span class="pname">${H.esc(p.name)}</span></button>
-        <span class="pts" title="Puntos">${p.points}</span>
-        <span class="pf f${Math.min(p.fouls, 5)}" title="Faltas">${p.fouls}F</span>
-        <button data-a="score" data-pid="${p.id}" data-pts="1">+1</button>
-        <button data-a="score" data-pid="${p.id}" data-pts="2">+2</button>
-        <button data-a="score" data-pid="${p.id}" data-pts="3">+3</button>
-        <button class="fb" data-a="foul" data-pid="${p.id}" data-delta="1">F</button>
-      </div>`).join('') || '<p class="empty">Todavía no hay jugadores. Agregalos con el botón de abajo.</p>';
-    el.querySelector('[data-add-player]').disabled = t.players.length >= 20;
+    oc.textContent = `${on.length} de 5`;
+    oc.classList.toggle('bad', on.length !== 5);
+    el.querySelector('.t-target').innerHTML = sel
+      ? `Anota <b>#${H.esc(sel.num)} ${H.esc(sel.name)}</b>`
+      : 'Anota <b>el equipo</b> · elegí un jugador abajo';
+    el.querySelector('.target').classList.toggle('has', !!sel);
+    el.querySelector('[data-sub]').disabled = !sel;
+
+    let html = on.map(p => `
+      <button class="oc${p.id === selected[side] ? ' sel' : ''}${p.fouls >= 5 ? ' out' : ''}" data-select="${p.id}">
+        ${avatar(p)}
+        <span class="pnum">${H.esc(p.num)}</span>
+        <span class="pname">${H.esc(p.name)}</span>
+        <span class="pts" title="Puntos">${p.points}<small>pts</small></span>
+        <span class="pf f${Math.min(p.fouls, 5)}" title="Faltas">${p.fouls}<small>F</small></span>
+      </button>`).join('');
+    for (let i = on.length; i < 5; i++) html += `<button class="oc empty-slot" data-enter>+ Ingresar jugador</button>`;
+    if (!t.players.length) html = `<p class="empty">No hay jugadores cargados. Cargalos en <a href="/nomina">📋 Nómina</a>.</p>`;
+    el.querySelector('.players').innerHTML = html;
   }
 
   function render(s) {
@@ -85,7 +109,7 @@
     $('poss-home').classList.toggle('active', s.possession === 'home');
     $('poss-away').classList.toggle('active', s.possession === 'away');
     $('log').innerHTML = s.log.slice(0, 80).map(l => `<li><span>${l.p} ${l.c}</span>${H.esc(l.text)}</li>`).join('');
-    refreshOpenDialogs();
+    if ($('dlg-sub').open) renderBench();
     tick();
   }
 
@@ -113,8 +137,9 @@
     const d = b.dataset, a = d.a, msg = {};
     const holder = b.closest('[data-team]');
     if (d.team) msg.team = d.team; else if (holder) msg.team = holder.dataset.team;
-    if (d.pid) msg.playerId = Number(d.pid);
     for (const k of ['pts', 'delta', 'ms', 's', 'n']) if (d[k] !== undefined) msg[k] = Number(d[k]);
+    // Botones de canasta y falta: al jugador seleccionado de ese equipo
+    if (d.sel !== undefined && msg.team && selected[msg.team]) msg.playerId = selected[msg.team];
 
     if (a === 'period' && S) {
       const label = msg.n <= S.periods ? 'el cuarto ' + msg.n : 'tiempo suplementario';
@@ -125,6 +150,75 @@
     b.blur();
     if (navigator.vibrate) navigator.vibrate(12);
   });
+
+  // ---------- selección de jugador
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-select], [data-clear], [data-sub], [data-enter]');
+    if (!t || t.closest('dialog') || !S) return;
+    const side = t.closest('[data-team]').dataset.team;
+    if (t.hasAttribute('data-select')) {
+      const id = Number(t.getAttribute('data-select'));
+      selected[side] = selected[side] === id ? null : id; // tocar de nuevo deselecciona
+      saveSel();
+      renderTeam(side, S[side]);
+      if (navigator.vibrate) navigator.vibrate(8);
+    } else if (t.hasAttribute('data-clear')) {
+      selected[side] = null; saveSel(); renderTeam(side, S[side]);
+    } else if (t.hasAttribute('data-sub')) {
+      if (selected[side]) openSub(side, selected[side]);
+    } else if (t.hasAttribute('data-enter')) {
+      openSub(side, null);
+    }
+  });
+
+  // ---------- cambio: sale el seleccionado, se elige quién entra
+  let subCtx = null; // { side, outId|null }
+  function openSub(side, outId) {
+    subCtx = { side, outId };
+    $('dlg-sub').style.setProperty('--c', S[side].color);
+    renderBench();
+    $('dlg-sub').showModal();
+  }
+  function renderBench() {
+    if (!subCtx || !S) return;
+    const t = S[subCtx.side];
+    const out = subCtx.outId != null ? findP(subCtx.side, subCtx.outId) : null;
+    if (subCtx.outId != null && (!out || !out.onCourt)) { $('dlg-sub').close(); return; }
+    $('sub-title').textContent = (out ? 'Cambio · ' : 'Ingresar jugador · ') + t.short;
+    $('sub-out').innerHTML = out
+      ? `<span class="tag-out">SALE</span>${avatar(out)}<b>#${H.esc(out.num)}</b> ${H.esc(out.name)}<span class="muted">${out.points} pts · ${out.fouls} F</span>`
+      : '';
+    $('sub-out').hidden = !out;
+    $('sub-only-out').hidden = !out;
+    $('sub-label').textContent = out ? 'Elegí el reemplazante (ENTRA)' : 'Elegí quién entra a la cancha';
+    const bench = t.players.filter(p => !p.onCourt).sort(byNum);
+    $('bench').innerHTML = bench.map(p => `
+      <button class="bench-p${p.fouls >= 5 ? ' out' : ''}" data-in="${p.id}">
+        ${avatar(p)}<span class="pnum">${H.esc(p.num)}</span><span class="pname">${H.esc(p.name)}</span>
+        <span class="muted">${p.points} pts · ${p.fouls} F${p.fouls >= 5 ? ' · 5 faltas' : ''}</span>
+      </button>`).join('') || `<p class="empty">No hay suplentes. Agregalos en <a href="/nomina">📋 Nómina</a>.</p>`;
+  }
+  $('bench').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-in]');
+    if (!b || !subCtx) return;
+    const inId = Number(b.getAttribute('data-in'));
+    const p = findP(subCtx.side, inId);
+    if (p && p.fouls >= 5 && !confirm(`#${p.num} ${p.name} tiene 5 faltas. ¿Ingresarlo igual?`)) return;
+    const { side, outId } = subCtx;
+    const req = outId != null
+      ? send('swap', { team: side, outId, inId })
+      : send('sub', { team: side, playerId: inId });
+    req.then(() => {
+      if (outId != null) { selected[side] = inId; saveSel(); } // el que entra queda seleccionado
+      $('dlg-sub').close();
+    }).catch(() => {});
+  });
+  $('sub-only-out').addEventListener('click', () => {
+    if (!subCtx || subCtx.outId == null) return;
+    send('sub', { team: subCtx.side, playerId: subCtx.outId }).then(() => $('dlg-sub').close()).catch(() => {});
+  });
+  $('dlg-sub').addEventListener('close', () => { subCtx = null; });
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 
   // ---------- fijar el reloj a mano
   $('edit-clock').addEventListener('click', () => {
@@ -150,111 +244,7 @@
     else if (k === 'b') quiet(send('buzzer'));
   });
 
-  // ---------- diálogos: cerrar
-  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
-
-  function photoFlow(opts) {
-    return H.pickPhoto(opts).then(() => { toast('✓ Foto guardada'); }).catch(e => {
-      if (e.message !== 'cancelado') toast(e.message);
-    });
-  }
-
-  // ---------- equipo
-  let editingTeam = null;
-  const teamForm = $('team-form');
-  function openTeam(side) {
-    editingTeam = side;
-    const t = S[side];
-    teamForm.elements.name.value = t.name;
-    teamForm.elements.short.value = t.short;
-    teamForm.elements.color.value = t.color;
-    fillTeamPhoto();
-    $('dlg-team').showModal();
-  }
-  function fillTeamPhoto() {
-    if (!editingTeam || !S) return;
-    const t = S[editingTeam];
-    $('team-crest').innerHTML = crest(t);
-    $('team-photo-rm').hidden = !t.logo;
-  }
-  $('team-photo').addEventListener('click', () => photoFlow({ team: editingTeam, mode: 'crest', title: 'Escudo de ' + S[editingTeam].name }));
-  $('team-photo-rm').addEventListener('click', () => {
-    if (confirm('¿Quitar el escudo?')) quiet(send('removePhoto', { team: editingTeam }));
-  });
-  teamForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const f = teamForm.elements;
-    send('team', { team: editingTeam, name: f.name.value, short: f.short.value, color: f.color.value })
-      .then(() => $('dlg-team').close()).catch(() => {});
-  });
-
-  // ---------- jugador
-  let editingPlayer = null; // { team, id|null }
-  const playerForm = $('player-form');
-  function findPlayer(team, id) { return S && S[team].players.find(p => p.id === id); }
-  function openPlayer(team, id) {
-    editingPlayer = { team, id };
-    const p = id != null ? findPlayer(team, id) : null;
-    const f = playerForm.elements;
-    $('player-title').textContent = p ? `Jugador · ${S[team].short}` : `Nuevo jugador · ${S[team].short}`;
-    f.num.value = p ? p.num : '';
-    f.name.value = p ? p.name : '';
-    f.onCourt.checked = p ? p.onCourt : false;
-    $('player-remove').hidden = !p;
-    $('dlg-player').style.setProperty('--c', S[team].color);
-    fillPlayerPhoto();
-    $('dlg-player').showModal();
-    if (!p) setTimeout(() => f.num.focus(), 50);
-  }
-  function fillPlayerPhoto() {
-    if (!editingPlayer || !S) return;
-    const p = editingPlayer.id != null ? findPlayer(editingPlayer.team, editingPlayer.id) : null;
-    if (editingPlayer.id != null && !p) { $('dlg-player').close(); return; }
-    const name = playerForm.elements.name.value || (p && p.name) || '';
-    $('player-photo-view').innerHTML = p && p.photo ? img(p.photo, p.name) : H.esc(H.initials(name || '?'));
-    $('player-photo').disabled = !p;
-    $('player-photo-rm').hidden = !(p && p.photo);
-    $('player-photo-hint').textContent = p ? 'Sacale una foto o elegila de la galería.' : 'Guardá el jugador primero para agregarle la foto.';
-    $('player-stats').innerHTML = p ? [
-      ['PTS', p.points], ['TL', p.ft || 0], ['2P', p.fg2 || 0], ['3P', p.fg3 || 0], ['F', p.fouls]
-    ].map(([k, v]) => `<div><b>${v}</b><small>${k}</small></div>`).join('') : '';
-  }
-  $('player-photo').addEventListener('click', () => {
-    const p = findPlayer(editingPlayer.team, editingPlayer.id);
-    if (p) photoFlow({ team: editingPlayer.team, playerId: p.id, mode: 'player', title: `#${p.num} ${p.name}` });
-  });
-  $('player-photo-rm').addEventListener('click', () => {
-    if (confirm('¿Quitar la foto?')) quiet(send('removePhoto', { team: editingPlayer.team, playerId: editingPlayer.id }));
-  });
-  $('player-remove').addEventListener('click', () => {
-    const p = findPlayer(editingPlayer.team, editingPlayer.id);
-    if (p && confirm(`¿Quitar a #${p.num} ${p.name} del plantel? Se pierden sus estadísticas de este partido.`)) {
-      send('removePlayer', { team: editingPlayer.team, playerId: p.id }).then(() => $('dlg-player').close()).catch(() => {});
-    }
-  });
-  playerForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const f = playerForm.elements;
-    const msg = { team: editingPlayer.team, num: f.num.value.trim(), name: f.name.value, onCourt: f.onCourt.checked };
-    if (editingPlayer.id != null) msg.playerId = editingPlayer.id;
-    send('player', msg).then(() => $('dlg-player').close()).catch(() => {});
-  });
-  ['dlg-team', 'dlg-player'].forEach(id => $(id).addEventListener('close', () => {
-    if (id === 'dlg-team') editingTeam = null; else editingPlayer = null;
-  }));
-  function refreshOpenDialogs() { fillTeamPhoto(); fillPlayerPhoto(); }
-
-  // Abrir edición desde la lista
-  document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-edit-team], [data-edit-player], [data-add-player]');
-    if (!t || !S) return;
-    const side = t.closest('[data-team]').dataset.team;
-    if (t.hasAttribute('data-edit-team')) openTeam(side);
-    else if (t.hasAttribute('data-add-player')) openPlayer(side, null);
-    else openPlayer(side, Number(t.getAttribute('data-edit-player')));
-  });
-
-  // ---------- configuración
+  // ---------- datos del partido
   const dlg = $('config'), form = $('config-form');
   $('open-config').addEventListener('click', () => {
     if (!S) return;
@@ -262,24 +252,14 @@
     f.title.value = S.title;
     f.periodMinutes.value = S.periodLength / 60000;
     f.otMinutes.value = S.otLength / 60000;
-    for (const side of ['home', 'away']) {
-      f[side + '_roster'].value = S[side].players.map(p => `${p.num} ${p.name}`).join('\n');
-      f[side + '_roster'].dataset.orig = f[side + '_roster'].value;
-    }
     dlg.showModal();
   });
   $('cancel-config').addEventListener('click', () => dlg.close());
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const f = form.elements, msg = {
-      title: f.title.value, periodMinutes: Number(f.periodMinutes.value), otMinutes: Number(f.otMinutes.value)
-    };
-    // Los planteles solo se mandan si se tocaron
-    for (const side of ['home', 'away']) {
-      const ta = f[side + '_roster'];
-      if (ta.value !== ta.dataset.orig) msg[side] = { roster: ta.value };
-    }
-    send('config', msg).then(() => dlg.close()).catch(() => {});
+    const f = form.elements;
+    send('config', { title: f.title.value, periodMinutes: Number(f.periodMinutes.value), otMinutes: Number(f.otMinutes.value) })
+      .then(() => dlg.close()).catch(() => {});
   });
   $('new-game').addEventListener('click', () => {
     if (confirm('¿Empezar un partido nuevo? Se borran puntos, faltas, tiempos y registro (se mantienen equipos, planteles y fotos).')) {
