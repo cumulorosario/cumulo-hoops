@@ -12,13 +12,13 @@
   html, body { height: 100%; background: var(--bg); color: #e8edf5; overflow: hidden;
                font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
   .board { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; padding: 2.5vh 2vw; }
-  /* Fila superior: marca a la izquierda, categoría al centro */
-  .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 8vh; margin-bottom: 1vh; }
-  .appbrand { display: flex; align-items: center; gap: 1vw; min-width: 0; }
-  .appbrand img { height: 5.6vh; width: auto; display: block; }
-  .appbrand i { width: .12vw; height: 4.4vh; background: rgba(111,153,202,.45); }
-  .appbrand b { font-size: 1.6vw; font-weight: 800; color: #e8edf5; white-space: nowrap; letter-spacing: .02em; }
-  .title { text-align: center; font-size: 2.2vw; font-weight: 800; letter-spacing: .15em; color: var(--amber);
+  /* Fila superior: marca a la izquierda, categoría a la derecha */
+  .top { display: grid; grid-template-columns: auto 1fr; gap: 3vw; align-items: center; height: 12vh; margin-bottom: 1vh; }
+  .appbrand { display: flex; align-items: center; gap: 1.4vw; min-width: 0; }
+  .appbrand img { height: 10vh; width: auto; display: block; }
+  .appbrand i { display: block; flex: none; width: .15vw; height: 7.5vh; background: rgba(111,153,202,.45); }
+  .appbrand b { font-size: 2.1vw; font-weight: 800; color: #e8edf5; white-space: nowrap; letter-spacing: .02em; }
+  .title { text-align: right; font-size: 2.2vw; font-weight: 800; letter-spacing: .15em; color: var(--amber);
            text-transform: uppercase; white-space: nowrap; overflow: hidden; }
   .main { flex: 1; display: flex; min-height: 0; }
   .team { flex: 1; background: var(--panel); border: .15vw solid var(--line); border-top: 1vh solid var(--c, #888);
@@ -77,7 +77,6 @@
   <div class="top">
     <div class="appbrand"><img src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"><i></i><b>Cúmulo Hoops</b></div>
     <div class="title" id="title"></div>
-    <div></div>
   </div>
   <div class="main">
     <div class="team" id="home">

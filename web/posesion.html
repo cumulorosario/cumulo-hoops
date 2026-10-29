@@ -10,21 +10,21 @@
   * { font-variant-numeric: tabular-nums; box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #000; color: #fff; overflow: hidden; font-family: "Segoe UI", Roboto, Arial, sans-serif; }
   .wrap { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .arrows { display: flex; align-items: center; height: 10vh; }
+  .arrows { display: flex; align-items: center; height: 10vh; margin-top: 10vh; }
   .arrow { width: 0; height: 0; border-top: 3.5vh solid transparent; border-bottom: 3.5vh solid transparent; opacity: .1; margin: 0 3vw; }
   #arrow-home { border-right: 5vh solid var(--hc, #fff); }
   #arrow-away { border-left: 5vh solid var(--ac, #fff); }
   .arrow.on { opacity: 1; }
   .tag { font-size: 5vh; font-weight: 800; letter-spacing: .15em; min-width: 20vw; text-align: center; }
-  .shot { font-family: var(--mono); font-weight: 700; font-size: min(38vw, 56vh); line-height: 1; color: #ff2a2a; text-shadow: 0 0 4vw; }
+  .shot { font-family: var(--mono); font-weight: 700; font-size: min(36vw, 48vh); line-height: 1; color: #ff2a2a; text-shadow: 0 0 4vw; }
   .shot.zero { animation: blink .5s steps(2) infinite; }
   .game { font-family: var(--mono); font-size: min(7vw, 11vh); color: #fbbf24; line-height: 1.1; }
   .game span { font-size: .5em; color: #8090a8; margin-right: 2vw; }
   /* Marca arriba a la izquierda */
   .brand { position: fixed; top: 2.5vh; left: 2.5vw; display: flex; align-items: center; gap: 1.6vh; }
-  .brand img { height: min(8vh, 6vw); width: auto; display: block; }
-  .brand i { width: 2px; height: min(6vh, 4.5vw); background: rgba(111,153,202,.45); }
-  .brand b { font-size: min(3.4vh, 2.4vw); font-weight: 800; color: #e8edf5; white-space: nowrap; }
+  .brand img { height: min(13vh, 10vw); width: auto; display: block; }
+  .brand i { width: 3px; height: min(10vh, 7.5vw); background: rgba(111,153,202,.45); }
+  .brand b { font-size: min(5.2vh, 3.8vw); font-weight: 800; color: #e8edf5; white-space: nowrap; }
   body.solo .game, body.solo .arrows { display: none; }
   body.solo .shot { font-size: min(46vw, 70vh); }
   .conn { position: fixed; top: 1vh; right: 1vw; background: #7f1d1d; font-weight: 800; font-size: 3vh; padding: .5vh 1vw; border-radius: .5vw; display: none; }

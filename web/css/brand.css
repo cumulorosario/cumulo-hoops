@@ -3,13 +3,13 @@
 
 /* Encabezado: logo de Cúmulo Ingeniería | nombre de la app y de la pantalla, arriba a la izquierda */
 .cb-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.cb-brand .cb-logo { height: 40px; width: auto; flex: none; display: block; }
-.cb-brand .cb-sep { width: 1px; height: 32px; background: rgba(111,153,202,.45); flex: none; }
-.cb-brand b { display: block; font-size: 18px; line-height: 1.15; white-space: nowrap; }
-.cb-brand small { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8391a8; white-space: nowrap; }
+.cb-brand .cb-logo { height: 58px; width: auto; flex: none; display: block; }
+.cb-brand .cb-sep { width: 2px; height: 44px; background: rgba(111,153,202,.45); flex: none; }
+.cb-brand b { display: block; font-size: 22px; line-height: 1.15; white-space: nowrap; }
+.cb-brand small { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #8391a8; white-space: nowrap; }
 @media (max-width: 560px) {
   .cb-brand { gap: 9px; }
-  .cb-brand .cb-logo { height: 30px; }
-  .cb-brand .cb-sep { height: 26px; }
-  .cb-brand b { font-size: 16px; }
+  .cb-brand .cb-logo { height: 42px; }
+  .cb-brand .cb-sep { height: 34px; }
+  .cb-brand b { font-size: 18px; }
 }
