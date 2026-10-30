@@ -64,16 +64,29 @@
   };
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function tenths(ms) { var t = Math.floor(ms / 100); return Math.floor(t / 10) + '.' + (t % 10); }
-  // Reloj de juego: m:ss, y décimas en el último minuto (como FIBA)
+  function hundredths(ms) { var c = Math.floor(ms / 10); return Math.floor(c / 100) + '.' + pad(c % 100); }
+  // Reloj de juego: m:ss; décimas en el último minuto (como FIBA) y centésimas desde 9.99
   H.fmtGame = function (ms) {
+    if (ms < 10000) return hundredths(ms);
     if (ms < 60000) return tenths(ms);
     var s = Math.ceil(ms / 1000);
     return Math.floor(s / 60) + ':' + pad(s % 60);
   };
-  // Reloj de tiro: segundos enteros, décimas por debajo de 5 s
+  // Reloj de tiro: segundos enteros y centésimas desde 9.99
   H.fmtShot = function (ms) {
-    if (ms > 0 && ms < 5000) return tenths(ms);
+    if (ms < 10000) return hundredths(ms);
     return String(Math.ceil(ms / 1000));
+  };
+  // ¿El reloj está mostrando centésimas? (las pantallas achican un poco el número)
+  H.isFine = function (ms) { return ms < 10000; };
+
+  // Refresco de los relojes: lo más rápido que permite la pantalla (centésimas fluidas)
+  H.loop = function (fn) {
+    var raf = w.requestAnimationFrame;
+    if (!raf) { setInterval(fn, 30); return; }
+    (function frame() { fn(); raf(frame); })();
+    // Si la pestaña queda en segundo plano, requestAnimationFrame se pausa: este respaldo lo cubre
+    setInterval(function () { if (document.hidden) fn(); }, 500);
   };
   // El reloj de tiro se apaga cuando queda menos tiempo de juego que de posesión
   H.shotVisible = function (s) { return !(H.rem(s.shot) > H.rem(s.clock)); };

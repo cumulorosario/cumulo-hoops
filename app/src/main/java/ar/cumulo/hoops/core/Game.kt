@@ -85,11 +85,19 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         }
     }
 
-    class LogEntry(val p: String, val c: String, val text: String) : JsonWritable {
-        override fun toJson() = linkedMapOf("p" to p, "c" to c, "text" to text)
+    /**
+     * Una línea del registro. "say" es la misma jugada escrita para leerse en voz alta
+     * (nombres completos, sin abreviaturas ni símbolos) y "n" un número creciente que
+     * permite a las pantallas saber qué jugadas son nuevas.
+     */
+    class LogEntry(val p: String, val c: String, val text: String, val say: String = text, val n: Long = 0) : JsonWritable {
+        override fun toJson() = linkedMapOf("n" to n, "p" to p, "c" to c, "text" to text, "say" to say)
 
         companion object {
-            fun from(m: Map<String, Any?>) = LogEntry(m.str("p") ?: "", m.str("c") ?: "", m.str("text") ?: "")
+            fun from(m: Map<String, Any?>) = LogEntry(
+                m.str("p") ?: "", m.str("c") ?: "", m.str("text") ?: "",
+                m.str("say") ?: m.str("text") ?: "", m.num("n")?.toLong() ?: 0
+            )
         }
     }
 
@@ -109,6 +117,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
     var away: Team; private set
     var buzzer = 0; private set
     private var log = ArrayList<LogEntry>()
+    private var logSeq = 0L
 
     private var nextId = 1
     private val undoStack = ArrayDeque<String>()
@@ -137,9 +146,32 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         return "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
     }
 
-    private fun addLog(text: String) {
-        log.add(0, LogEntry(periodLabel(), fmtClock(rem(clock)), text))
+    private fun addLog(text: String, say: String = text) {
+        log.add(0, LogEntry(periodLabel(), fmtClock(rem(clock)), text, say, ++logSeq))
         while (log.size > 500) log.removeAt(log.size - 1)
+    }
+
+    // ------------------------------------------------------------------ frases para leer en voz alta
+    private val ordinals = listOf("primer", "segundo", "tercer", "cuarto")
+    private fun periodSpoken(of: Boolean = false): String {
+        val name = if (period <= periods) "${ordinals.getOrElse(period - 1) { "${period}º" }} cuarto"
+        else if (period - periods == 1) "suplementario" else "suplementario número ${period - periods}"
+        return if (of) "del $name" else "el $name"
+    }
+    private fun scoreSpoken(): String = when {
+        home.score == away.score -> "Empate en ${home.score}."
+        home.score > away.score -> "${home.name} ${home.score}, ${away.name} ${away.score}."
+        else -> "${away.name} ${away.score}, ${home.name} ${home.score}."
+    }
+    private fun clockSpoken(): String {
+        val s = ceil(rem(clock) / 1000.0).toLong()
+        val m = s / 60; val ss = s % 60
+        val t = when {
+            m == 0L -> "$ss segundos"
+            ss == 0L -> if (m == 1L) "1 minuto" else "$m minutos"
+            else -> "$m ${if (m == 1L) "minuto" else "minutos"} y $ss segundos"
+        }
+        return "Quedan $t ${periodSpoken(true)}."
     }
 
     private fun team(k: String?): Team = when (k) {
@@ -193,7 +225,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                 set(shot, 24_000)
                 // FIBA: las faltas de equipo se reinician cada cuarto; el suplementario continúa el 4º.
                 if (n <= periods) { home.fouls = 0; away.fouls = 0 }
-                addLog("Inicio de ${periodLabel()}")
+                addLog("Inicio de ${periodLabel()}", "Comienza ${periodSpoken()}.")
             }
 
             "score" -> {
@@ -209,7 +241,13 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                     when (pts) { 1 -> it.ft++; 2 -> it.fg2++; 3 -> it.fg3++ }
                 }
                 val sign = if (pts > 0) "+$pts" else "$pts"
-                addLog("${t.short} $sign${p?.let { " · #${it.num} ${it.name}" } ?: ""}  (${home.score}-${away.score})")
+                val what = when (pts) { 1 -> "Libre"; 2 -> "Doble"; 3 -> "Triple"; else -> "Corrección" }
+                val say = if (pts > 0) {
+                    "$what de ${p?.let { "${it.name}, número ${it.num}, " } ?: ""}${t.name}. ${scoreSpoken()}"
+                } else {
+                    "Corrección: se descuenta ${-pts} ${if (pts == -1) "punto" else "puntos"} a ${t.name}${p?.let { ", ${it.name}" } ?: ""}. ${scoreSpoken()}"
+                }
+                addLog("${t.short} $sign${p?.let { " · #${it.num} ${it.name}" } ?: ""}  (${home.score}-${away.score})", say)
             }
 
             "foul" -> {
@@ -220,8 +258,13 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                 p?.let { it.fouls = max(0, it.fouls + delta) }
                 if (delta > 0) {
                     val who = p?.let { " · #${it.num} ${it.name} (${it.fouls})" } ?: " (equipo)"
-                    addLog("Falta ${t.short}$who${if (p != null && p.fouls >= 5) " — 5 FALTAS" else ""}")
-                } else addLog("Corrección: −1 falta ${t.short}")
+                    val say = if (p != null) {
+                        "Falta de ${p.name}, número ${p.num}, de ${t.name}. " +
+                            (if (p.fouls >= 5) "Cinco faltas, queda fuera del partido. " else "Lleva ${p.fouls} ${if (p.fouls == 1) "falta" else "faltas"}. ") +
+                            "${t.name} suma ${t.fouls} ${if (t.fouls == 1) "falta" else "faltas"} en el cuarto."
+                    } else "Falta de equipo de ${t.name}. Suma ${t.fouls} en el cuarto."
+                    addLog("Falta ${t.short}$who${if (p != null && p.fouls >= 5) " — 5 FALTAS" else ""}", say)
+                } else addLog("Corrección: −1 falta ${t.short}", "Corrección: se descuenta una falta a ${t.name}.")
             }
 
             "timeout" -> {
@@ -230,15 +273,16 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                 t.timeouts = max(0, t.timeouts + delta)
                 if (delta > 0) {
                     pause(clock); pause(shot)
-                    addLog("Tiempo muerto ${t.short} (${t.timeouts})")
-                } else addLog("Corrección: −1 tiempo muerto ${t.short}")
+                    addLog("Tiempo muerto ${t.short} (${t.timeouts})", "Tiempo muerto pedido por ${t.name}. ${clockSpoken()}")
+                } else addLog("Corrección: −1 tiempo muerto ${t.short}", "Corrección: se descuenta un tiempo muerto a ${t.name}.")
             }
 
             "sub" -> {
                 val t = team(m.str("team"))
                 val p = player(t, m.num("playerId")) ?: return
                 p.onCourt = !p.onCourt
-                addLog("${if (p.onCourt) "Ingresa" else "Sale"} ${t.short} · #${p.num} ${p.name}")
+                addLog("${if (p.onCourt) "Ingresa" else "Sale"} ${t.short} · #${p.num} ${p.name}",
+                    "${if (p.onCourt) "Ingresa" else "Sale"} ${p.name}, número ${p.num}, de ${t.name}.")
             }
 
             "swap" -> {
@@ -250,14 +294,15 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
                 require(!inn.onCourt) { "#${inn.num} ya está en cancha" }
                 out.onCourt = false
                 inn.onCourt = true
-                addLog("Cambio ${t.short}: sale #${out.num} ${out.name}, entra #${inn.num} ${inn.name}")
+                addLog("Cambio ${t.short}: sale #${out.num} ${out.name}, entra #${inn.num} ${inn.name}",
+                    "Cambio en ${t.name}: sale ${out.name}, número ${out.num}, y entra ${inn.name}, número ${inn.num}.")
             }
 
             "possession" -> possession = m.str("team").takeIf { it == "home" || it == "away" }
             "swapPossession" -> {
                 possession = if (possession == "home") "away" else "home"
                 shotReset(24)
-                addLog("Cambio de posesión → ${team(possession).short}")
+                addLog("Cambio de posesión → ${team(possession).short}", "Posesión para ${team(possession).name}.")
             }
 
             "team" -> editTeam(team(m.str("team")), m)
@@ -355,7 +400,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         gameDate = now()
         log.clear()
         undoStack.clear()
-        addLog("Nuevo partido")
+        addLog("Nuevo partido", "Nuevo partido: ${home.name} contra ${away.name}.")
     }
 
     // ------------------------------------------------------------------ fotos
@@ -407,13 +452,13 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         if (clock.running && rem(clock) <= 0) {
             pause(clock); pause(shot)
             buzzer++
-            addLog("Fin de ${periodLabel()}")
+            addLog("Fin de ${periodLabel()}", "Fin ${periodSpoken(true)}. ${scoreSpoken()}")
             changed = true
         }
         if (shot.running && rem(shot) <= 0) {
             pause(shot); pause(clock)
             buzzer++
-            addLog("Violación de reloj de tiro")
+            addLog("Violación de reloj de tiro", "Violación de los 24 segundos${possession?.let { " de ${team(it).name}" } ?: ""}.")
             changed = true
         }
         return changed
@@ -461,6 +506,7 @@ class Game(private val now: () -> Long = { System.currentTimeMillis() }) {
         buzzer = m.num("buzzer")?.toInt() ?: 0
         log = ArrayList((m.list("log") ?: emptyList()).mapNotNull { (it as? Map<String, Any?>)?.let(LogEntry::from) })
         nextId = (home.players + away.players).maxOfOrNull { it.id }?.plus(1) ?: 1
+        logSeq = log.maxOfOrNull { it.n } ?: 0
         undoStack.clear()
         true
     } catch (e: Exception) {

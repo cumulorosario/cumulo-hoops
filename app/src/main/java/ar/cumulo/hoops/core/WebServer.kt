@@ -34,6 +34,7 @@ fun interface AssetSource {
  *   /posesion    reloj de 24                  [posesion]
  *   /estadisticas planilla y compartir        [operador]
  *   /nomina      planteles, clubes y fotos    [operador]
+ *   /relato      relato accesible, en voz alta [relato]
  *
  * API:
  *   GET  /events          estado en vivo (Server-Sent Events)          [cualquier pantalla]
@@ -413,13 +414,14 @@ class WebServer(
         private val ROUTES = mapOf(
             "/" to "index.html", "/login" to "login.html", "/operador" to "operador.html",
             "/tablero" to "tablero.html", "/posesion" to "posesion.html", "/estadisticas" to "estadisticas.html",
-            "/nomina" to "nomina.html"
+            "/nomina" to "nomina.html", "/relato" to "relato.html"
         )
         /** Qué contraseña pide cada página. */
         private val PROTECTED = mapOf(
             "/operador" to Security.OPERATOR, "/operador.html" to Security.OPERATOR,
             "/estadisticas" to Security.OPERATOR, "/estadisticas.html" to Security.OPERATOR,
             "/nomina" to Security.OPERATOR, "/nomina.html" to Security.OPERATOR,
+            "/relato" to "relato", "/relato.html" to "relato",
             "/tablero" to "tablero", "/tablero.html" to "tablero",
             "/posesion" to "posesion", "/posesion.html" to "posesion"
         )

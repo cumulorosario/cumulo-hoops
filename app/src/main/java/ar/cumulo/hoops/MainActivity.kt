@@ -18,6 +18,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.provider.Settings
+import android.speech.tts.TextToSpeech
 import android.util.Base64
 import android.util.Log
 import android.util.TypedValue
@@ -38,6 +39,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.io.File
+import java.util.Locale
 
 /**
  * Pantalla principal: arranca el servidor y muestra la página "Conectar" (QR para TVs y
@@ -59,6 +61,9 @@ class MainActivity : Activity() {
     private var lastIp: String? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var cameraFile: File? = null
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+    private val ttsPending = ArrayList<Pair<String, Float>>()
 
     private val statusLoop = object : Runnable {
         override fun run() {
@@ -178,6 +183,8 @@ class MainActivity : Activity() {
         ServerService.listener = null
         handler.removeCallbacksAndMessages(null)
         web.destroy()
+        tts?.shutdown()
+        tts = null
         super.onDestroy()
     }
 
@@ -257,6 +264,51 @@ class MainActivity : Activity() {
                 try { startActivity(Intent.createChooser(send, getString(R.string.share_title))) } catch (_: Exception) { }
             }
         }
+
+        /** Lectura en voz alta del registro (el WebView no trae síntesis de voz propia). */
+        @JavascriptInterface
+        fun speak(text: String, rate: Double) {
+            runOnUiThread { speakText(text, rate.toFloat()) }
+        }
+
+        @JavascriptInterface
+        fun stopSpeaking() {
+            runOnUiThread {
+                ttsPending.clear()
+                tts?.stop()
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ voz
+    private fun speakText(text: String, rate: Float) {
+        val engine = tts
+        if (engine == null) {
+            ttsPending.add(text to rate)
+            tts = TextToSpeech(this) { status -> onTtsReady(status) }
+            return
+        }
+        if (!ttsReady) {
+            ttsPending.add(text to rate)
+            return
+        }
+        engine.setSpeechRate(rate.coerceIn(0.5f, 2f))
+        engine.speak(text, TextToSpeech.QUEUE_ADD, null, "hoops-" + System.nanoTime())
+    }
+
+    @Suppress("DEPRECATION")
+    private fun onTtsReady(status: Int) {
+        val engine = tts ?: return
+        ttsReady = status == TextToSpeech.SUCCESS
+        if (!ttsReady) {
+            ttsPending.clear()
+            return
+        }
+        val r = engine.setLanguage(Locale("es", "AR"))
+        if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) engine.setLanguage(Locale("es"))
+        val pending = ArrayList(ttsPending)
+        ttsPending.clear()
+        for (item in pending) speakText(item.first, item.second)
     }
 
     // ------------------------------------------------------------------ pantalla completa

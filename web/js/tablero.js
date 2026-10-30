@@ -46,20 +46,22 @@
     tick();
   }
 
-  var lastClock = '', lastShot = '';
+  var lastClock = null, lastShot = null;
   function tick() {
     if (!S) return;
     var g = H.rem(S.clock), sh = H.rem(S.shot);
     var ct = H.fmtGame(g);
     if (ct !== lastClock) { $('clock').textContent = ct; lastClock = ct; }
-    $('clock').className = 'clock' + (S.clock.running ? '' : ' paused');
+    var cc = 'clock' + (S.clock.running ? '' : ' paused');
+    if ($('clock').className !== cc) $('clock').className = cc;
     var vis = H.shotVisible(S);
     var st = vis ? H.fmtShot(sh) : '';
     if (st !== lastShot) { $('shot').innerHTML = st || '&nbsp;'; lastShot = st; }
-    $('shot').className = 'shot' + (vis && sh < 5000 ? ' low' : '') + (vis && sh <= 0 ? ' zero' : '');
+    var cls = 'shot' + (vis && sh < 5000 ? ' low' : '') + (vis && sh <= 0 ? ' zero' : '') + (vis && H.isFine(sh) ? ' fine' : '');
+    if ($('shot').className !== cls) $('shot').className = cls;
   }
 
-  setInterval(tick, 50);
+  H.loop(tick);
   H.setupOverlay('overlay');
   H.connect(render, function (ok) { $('conn').style.display = ok ? 'none' : 'block'; }, 'tablero');
 })();

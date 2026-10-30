@@ -298,6 +298,33 @@ class CoreTest {
     }
 
     @Test
+    fun registro_para_leer_en_voz_alta() {
+        val g = game()
+        val p = g.home.players[0]
+        g.act("type" to "score", "team" to "home", "pts" to 2, "playerId" to p.id)
+        var log = Json.parseObject(g.publicJson()).list("log")!!.map { it as Map<*, *> }
+        assertEquals("Doble de ${p.name}, número ${p.num}, Club Atlético Echesortu. Club Atlético Echesortu 2, Club Sorrento 0.", log[0]["say"])
+        val n1 = (log[0]["n"] as Number).toLong()
+        g.act("type" to "foul", "team" to "away")
+        log = Json.parseObject(g.publicJson()).list("log")!!.map { it as Map<*, *> }
+        assertTrue((log[0]["n"] as Number).toLong() > n1)
+        assertEquals("Falta de equipo de Club Sorrento. Suma 1 en el cuarto.", log[0]["say"])
+        g.act("type" to "undo")
+        g.act("type" to "score", "team" to "away", "pts" to 3)
+        log = Json.parseObject(g.publicJson()).list("log")!!.map { it as Map<*, *> }
+        assertTrue((log[0]["n"] as Number).toLong() > n1 + 1) // deshacer no reutiliza números
+        g.act("type" to "period", "n" to 2)
+        log = Json.parseObject(g.publicJson()).list("log")!!.map { it as Map<*, *> }
+        assertEquals("Comienza el segundo cuarto.", log[0]["say"])
+        val g2 = game()
+        assertTrue(g2.load(g.saveJson()))
+        g2.act("type" to "buzzer")
+        g2.act("type" to "foul", "team" to "home")
+        val l2 = Json.parseObject(g2.publicJson()).list("log")!!.map { it as Map<*, *> }
+        assertTrue((l2[0]["n"] as Number).toLong() > (log[0]["n"] as Number).toLong())
+    }
+
+    @Test
     fun servidor_http_y_eventos() {
         val web = File("../web").takeIf { it.isDirectory } ?: File("web")
         val server = WebServer(Game(), { p -> File(web, p).takeIf { it.isFile }?.readBytes() }, port = 0)

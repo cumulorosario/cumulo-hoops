@@ -108,7 +108,10 @@
     $('poss-away').textContent = s.away.short + ' ▶';
     $('poss-home').classList.toggle('active', s.possession === 'home');
     $('poss-away').classList.toggle('active', s.possession === 'away');
-    $('log').innerHTML = s.log.slice(0, 80).map(l => `<li><span>${l.p} ${l.c}</span>${H.esc(l.text)}</li>`).join('');
+    const logHtml = s.log.slice(0, 80).map(l => `<li><span>${l.p} ${l.c}</span>${H.esc(l.text)}</li>`).join('');
+    $('log').innerHTML = logHtml;
+    if ($('dlg-log').open) $('log2').innerHTML = logHtml;
+    readLog(s);
     if ($('dlg-sub').open) renderBench();
     tick();
   }
@@ -120,7 +123,7 @@
     $('shot').textContent = vis ? H.fmtShot(sh) : '––';
     $('shot').classList.toggle('low', vis && S.shot.running && sh < 5000);
   }
-  setInterval(tick, 50);
+  H.loop(tick);
 
   // ---------- envío de acciones
   function toast(msg) {
@@ -222,17 +225,36 @@
 
   // ---------- fijar el reloj a mano
   $('edit-clock').addEventListener('click', () => {
-    const v = prompt('Tiempo de juego (m:ss o segundos, ej. 1:24 o 9.5)', S ? H.fmtGame(H.rem(S.clock)) : '');
+    const v = prompt('Tiempo de juego (m:ss o segundos, ej. 1:24, 9.5 o 4.25)', S ? H.fmtGame(H.rem(S.clock)) : '');
     if (v == null) return;
     let ms = null, m;
-    if ((m = v.trim().match(/^(\d{1,2}):(\d{1,2})(?:\.(\d))?$/))) ms = (+m[1] * 60 + +m[2]) * 1000 + (m[3] ? +m[3] * 100 : 0);
-    else if ((m = v.trim().match(/^(\d{1,3})(?:[.,](\d))?$/))) ms = +m[1] * 1000 + (m[2] ? +m[2] * 100 : 0);
+    const frac = (d) => d ? Math.round(Number('0.' + d) * 1000) : 0; // ".5" = 500 ms, ".45" = 450 ms
+    if ((m = v.trim().match(/^(\d{1,2}):(\d{1,2})(?:[.,](\d{1,2}))?$/))) ms = (+m[1] * 60 + +m[2]) * 1000 + frac(m[3]);
+    else if ((m = v.trim().match(/^(\d{1,3})(?:[.,](\d{1,2}))?$/))) ms = +m[1] * 1000 + frac(m[2]);
     if (ms == null) return toast('Formato no válido');
     quiet(send('clockSet', { ms }));
   });
 
   // Tocar el reloj también permite fijarlo (en el celular no hay lugar para el botón ✎)
   $('clock-box').addEventListener('click', () => $('edit-clock').click());
+
+  // ---------- registro y lectura en voz alta
+  const V = window.HoopsVoz;
+  const readLog = V.follow();
+  function showVoz() {
+    document.querySelectorAll('[data-voz]').forEach(b => {
+      b.setAttribute('aria-pressed', V.isOn() ? 'true' : 'false');
+      b.textContent = V.isOn() ? '🔊 Voz activada' : '🔈 Leer en voz alta';
+      b.classList.toggle('active', V.isOn());
+      b.hidden = !V.available;
+    });
+  }
+  showVoz();
+  document.querySelectorAll('[data-voz]').forEach(b => b.addEventListener('click', () => { V.setOn(!V.isOn()); showVoz(); }));
+  $('open-log').addEventListener('click', () => {
+    $('log2').innerHTML = $('log').innerHTML || '<li>Todavía no hay jugadas.</li>';
+    $('dlg-log').showModal();
+  });
 
   // ---------- menú (celular)
   $('open-menu').addEventListener('click', () => $('dlg-menu').showModal());

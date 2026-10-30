@@ -373,3 +373,21 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .bench { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .menu-box { grid-template-columns: 1fr; }
 }
+
+/* registro: botón de voz y ventana (celular) */
+.log-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.voz-btn { font-size: 12px; padding: 4px 10px; letter-spacing: 0; text-transform: none; }
+#dlg-log { width: min(620px, 96vw); }
+.logdlg-box { padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 92vh; }
+.logdlg-head { display: flex; align-items: center; gap: 8px; }
+.logdlg-head h2 { flex: 1; margin: 0; font-size: 16px; }
+.logdlg-head button { padding: 8px 12px; font-size: 13px; }
+#log2 { list-style: none; margin: 0; padding: 0; overflow: auto; font-size: 14px; }
+#log2 li { padding: 7px 2px; border-top: 1px solid #18213a; }
+#log2 li span { font-family: var(--mono); color: var(--muted); margin-right: 8px; font-size: 12px; }
+@media (orientation: landscape) and (max-height: 560px), (orientation: portrait) and (max-width: 640px) {
+  .mini-tools { grid-template-columns: auto 1.1fr .6fr 1fr 1fr; }
+}
+@media (orientation: landscape) and (max-height: 560px), (orientation: portrait) and (max-width: 640px) {
+  .mini-tools button { white-space: nowrap; overflow: hidden; text-overflow: clip; font-size: 11px; }
+}

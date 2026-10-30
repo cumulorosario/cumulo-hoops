@@ -72,11 +72,12 @@
     <div class="mini-tools">
       <span class="conn mini-conn" id="conn2"><i></i></span>
       <button data-a="undo">↶ Deshacer</button>
-      <button data-a="buzzer" class="warn">📢</button>
+      <button data-a="buzzer" class="warn" aria-label="Chicharra">📢</button>
+      <button id="open-log">📜 Registro</button>
       <button id="open-menu">☰ Menú</button>
     </div>
 
-    <div class="log"><div class="log-head">Registro del partido</div><ol id="log"></ol></div>
+    <div class="log"><div class="log-head"><span>Registro del partido</span><button type="button" class="voz-btn" data-voz aria-pressed="false">🔈 Voz</button></div><ol id="log"></ol></div>
     <div class="keys">Atajos: <kbd>Espacio</kbd> reloj · <kbd>R</kbd> 24 · <kbd>T</kbd> 14 · <kbd>P</kbd> cambio posesión · <kbd>B</kbd> chicharra · <kbd>Ctrl+Z</kbd> deshacer</div>
   </section>
 
@@ -105,8 +106,17 @@
     <a class="btn" href="/nomina">📋 Nómina y formaciones</a>
     <a class="btn" href="/estadisticas">📊 Estadísticas</a>
     <a class="btn" href="/">📱 Conectar pantallas</a>
+    <a class="btn" href="/relato">♿ Relato accesible (voz)</a>
     <button type="button" id="menu-config">⚙ Partido (título, minutos, nuevo partido)</button>
     <button type="button" data-close>Cerrar</button>
+  </div>
+</dialog>
+
+<!-- Registro del partido (celular) -->
+<dialog id="dlg-log">
+  <div class="logdlg-box">
+    <div class="logdlg-head"><h2>Registro del partido</h2><button type="button" class="voz-btn" data-voz aria-pressed="false">🔈 Voz</button><button type="button" data-close>Cerrar</button></div>
+    <ol id="log2"></ol>
   </div>
 </dialog>
 
@@ -132,6 +142,7 @@
 
 <div id="toast"></div>
 <script src="/js/common.js"></script>
+<script src="/js/voz.js"></script>
 <script src="/js/operador.js"></script>
 </body>
 </html>

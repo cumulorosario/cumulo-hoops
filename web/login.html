@@ -44,8 +44,8 @@
   </form>
 <script>
 (function () {
-  var NAMES = { operador: 'Mesa de control', tablero: 'Tablero principal', posesion: 'Reloj de 24' };
-  var PAGES = { operador: '/operador', tablero: '/tablero', posesion: '/posesion' };
+  var NAMES = { operador: 'Mesa de control', tablero: 'Tablero principal', posesion: 'Reloj de 24', relato: 'Relato accesible' };
+  var PAGES = { operador: '/operador', tablero: '/tablero', posesion: '/posesion', relato: '/relato' };
   var q = {};
   location.search.replace(/^\?/, '').split('&').forEach(function (kv) {
     var i = kv.indexOf('='); if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));

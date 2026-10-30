@@ -28,6 +28,9 @@
   .brand b { font-size: min(5vh, 2.3vw); font-weight: 800; color: #e8edf5; white-space: nowrap; }
   body.solo .game, body.solo .arrows { display: none; }
   body.solo .shot { font-size: min(54vw, 86vh); }
+  /* Con centésimas (9.99) el número es más ancho: se achica para que entre */
+  .shot.fine { font-size: min(29vw, 69vh); }
+  body.solo .shot.fine { font-size: min(34vw, 86vh); }
   .conn { position: fixed; top: 1vh; right: 1vw; background: #7f1d1d; font-weight: 800; font-size: 3vh; padding: .5vh 1vw; border-radius: .5vw; display: none; }
   .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.85); color: #fff; border: 0; font-size: 3.5vw; font-weight: 700; cursor: pointer; }
   @keyframes blink { 50% { opacity: .15; } }
@@ -63,14 +66,18 @@
     H.checkBuzzer(s);
     tick();
   }
+  var lastShot = null, lastClock = null, lastCls = null;
   function tick() {
     if (!S) return;
     var sh = H.rem(S.shot), vis = H.shotVisible(S);
-    $('shot').innerHTML = vis ? H.fmtShot(sh) : '&nbsp;';
-    $('shot').className = 'shot' + (vis && sh <= 0 ? ' zero' : '');
-    $('clock').textContent = H.fmtGame(H.rem(S.clock));
+    var st = vis ? H.fmtShot(sh) : '';
+    if (st !== lastShot) { $('shot').innerHTML = st || '&nbsp;'; lastShot = st; }
+    var cls = 'shot' + (vis && sh <= 0 ? ' zero' : '') + (vis && H.isFine(sh) ? ' fine' : '');
+    if (cls !== lastCls) { $('shot').className = cls; lastCls = cls; }
+    var ct = H.fmtGame(H.rem(S.clock));
+    if (ct !== lastClock) { $('clock').textContent = ct; lastClock = ct; }
   }
-  setInterval(tick, 50);
+  H.loop(tick);
   H.setupOverlay('overlay');
   H.connect(render, function (ok) { $('conn').style.display = ok ? 'none' : 'block'; }, 'posesion');
 })();

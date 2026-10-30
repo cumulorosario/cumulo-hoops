@@ -32,7 +32,7 @@
   .sec { width: 100%; max-width: 940px; margin-top: 18px; background: #0d1322; border: 1px solid #1f2a40; border-radius: 16px; padding: 18px; display: none; }
   .sec h2 { margin: 0 0 4px; font-size: 18px; }
   .sec > p { margin: 0 0 14px; color: #8391a8; font-size: 14px; line-height: 1.45; }
-  .pwgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pwgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   @media (max-width: 760px) { .pwgrid { grid-template-columns: 1fr; } }
   .pwf { background: #0a0f1c; border: 1px solid #1f2a40; border-radius: 12px; padding: 12px; }
   .pwf label { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 4px; }
@@ -61,6 +61,7 @@
     <div class="card"><b>Mesa de control<i class="lock" id="l-operador"></i></b><span>Celular, tablet o PC del operador</span><div class="qr" id="q-op"></div><div class="url" id="u-op"></div><a class="go" href="/operador">Abrir aquí</a></div>
     <div class="card"><b>Tablero principal<i class="lock" id="l-tablero"></i></b><span>TV grande de la cancha</span><div class="qr" id="q-tab"></div><div class="url" id="u-tab"></div><a class="go" href="/tablero">Abrir aquí</a></div>
     <div class="card"><b>Reloj de 24<i class="lock" id="l-posesion"></i></b><span>TVs chicas detrás de los aros</span><div class="qr" id="q-pos"></div><div class="url" id="u-pos"></div><a class="go" href="/posesion">Abrir aquí</a></div>
+    <div class="card"><b>♿ Relato accesible<i class="lock" id="l-relato"></i></b><span>Para personas ciegas: el partido leído en voz alta, en su propio celular</span><div class="qr" id="q-rel"></div><div class="url" id="u-rel"></div><a class="go" href="/relato">Abrir aquí</a></div>
   </div>
 
   <form class="sec" id="sec" autocomplete="off">
@@ -76,6 +77,9 @@
       <div class="pwf"><label>Reloj de 24 <i class="lock" id="s-posesion"></i></label><small>Para las TVs chicas de posesión.</small>
         <div class="pwrow"><input name="posesion" type="password" placeholder="Nueva contraseña" minlength="4" maxlength="64"><button type="button" class="eye">👁</button></div>
         <button type="button" class="rm" data-rm="posesion">Quitar contraseña</button></div>
+      <div class="pwf"><label>Relato accesible <i class="lock" id="s-relato"></i></label><small>Normalmente abierta, para que cualquiera la use. Ponele contraseña solo si querés limitarla.</small>
+        <div class="pwrow"><input name="relato" type="password" placeholder="Nueva contraseña" minlength="4" maxlength="64"><button type="button" class="eye">👁</button></div>
+        <button type="button" class="rm" data-rm="relato">Quitar contraseña</button></div>
     </div>
     <div class="sec-actions"><button class="save" type="submit">Guardar contraseñas</button><span class="msg" id="msg"></span></div>
   </form>
@@ -88,11 +92,11 @@
   <script src="/js/vendor/qrcode.js"></script>
   <script>
   (function () {
-    var host = location.hostname, chosen = null, NAMES = ['operador', 'tablero', 'posesion'];
+    var host = location.hostname, chosen = null, NAMES = ['operador', 'tablero', 'posesion', 'relato'];
     var isLocal = host === 'localhost' || host === '127.0.0.1';
     function $(id) { return document.getElementById(id); }
     function draw(base) {
-      var items = [['op', '/operador'], ['tab', '/tablero'], ['pos', '/posesion']];
+      var items = [['op', '/operador'], ['tab', '/tablero'], ['pos', '/posesion'], ['rel', '/relato']];
       for (var i = 0; i < items.length; i++) {
         var url = base + items[i][1];
         $('u-' + items[i][0]).textContent = url;

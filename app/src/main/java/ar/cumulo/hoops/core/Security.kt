@@ -4,7 +4,7 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 
 /**
- * Contraseñas por pantalla (operador, tablero y reloj de 24) y sesiones de los dispositivos.
+ * Contraseñas por pantalla (operador, tablero, reloj de 24 y relato accesible) y sesiones de los dispositivos.
  *
  * - Una pantalla sin contraseña queda abierta para cualquiera conectado a la red.
  * - Quien entra como operador también puede abrir el tablero y el reloj de 24.
@@ -141,7 +141,7 @@ class Security(
 
     companion object {
         const val OPERATOR = "operador"
-        val SCREENS = listOf(OPERATOR, "tablero", "posesion")
+        val SCREENS = listOf(OPERATOR, "tablero", "posesion", "relato")
         val TOKEN = Regex("^[0-9a-f]{48}$")
         private const val ROUNDS = 20_000
         private const val MAX_FAILS = 8
