@@ -126,7 +126,7 @@ class MainActivity : Activity() {
                     updateChrome(url)
                 }
 
-                override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+                override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     updateChrome(url)
                 }
 
@@ -273,11 +273,12 @@ class MainActivity : Activity() {
         val home = !local || path.isEmpty() || path == "/"
         bar.visibility = if (home) View.VISIBLE else View.GONE
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        setImmersive(!home && landscape)
+        showSystemBars(home || !landscape)
     }
 
     @Suppress("DEPRECATION")
-    private fun setImmersive(on: Boolean) {
+    private fun showSystemBars(show: Boolean) {
+        val on = !show // ocultar barras
         if (Build.VERSION.SDK_INT >= 30) {
             val c = window.insetsController ?: return
             if (on) {
