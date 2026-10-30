@@ -10,16 +10,17 @@ permissions:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    # Versión fija del sistema: "ubuntu-latest" está migrando a Ubuntu 26 y puede cambiar sin aviso.
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Tests del núcleo
         run: ./gradlew --no-daemon testDebugUnitTest
