@@ -214,3 +214,162 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .bar-actions { flex-wrap: wrap; gap: 6px; }
   .bar-actions > * { flex: 1 1 30%; }
 }
+
+/* ---------- controles del reloj, barra mínima y menú (celular) ---------- */
+.clock-ctrl { display: flex; flex-direction: column; gap: 10px; }
+.clock-box { cursor: pointer; }
+.mini-tools { display: none; }
+.counter i { font-style: normal; }
+.counter .sh { display: none; }
+.mini-conn i { width: 10px; height: 10px; }
+#dlg-menu { width: min(420px, 94vw); }
+.menu-box { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.menu-box .cb-brand { margin-bottom: 6px; }
+.menu-box .btn, .menu-box button { justify-content: flex-start; padding: 12px 14px; font-size: 16px; text-align: left; }
+
+/* =====================================================================
+   CELULAR: toda la mesa de control entra en la pantalla, sin desplazar.
+   Las medidas usan el alto de la pantalla (vh) para adaptarse a cada equipo.
+   ===================================================================== */
+@media (orientation: landscape) and (max-height: 560px), (orientation: portrait) and (max-width: 640px) {
+  html, body { height: 100%; overflow: hidden; }
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; font-size: 13px; }
+  .bar, .cb-foot { display: none; }
+  .grid { flex: 1; min-height: 0; padding: 5px; gap: 5px; }
+  .team, .center { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 1.2vh; padding: 6px; border-radius: 12px; }
+  .team { border-top-width: 3px; }
+  .target, .pl-head, .keys, .log, .c-title, .period-label, #edit-clock { display: none !important; }
+  button { border-radius: 8px; }
+
+  /* equipos */
+  .t-head { gap: 6px; flex: none; }
+  .t-head .crest { width: 26px; height: 26px; border-radius: 6px; font-size: 9px; }
+  .t-head .t-name { font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-score { font-size: 30px; line-height: 1; min-width: 0; text-shadow: 0 0 10px var(--c); }
+  .row4, .row-sub, .counters { margin: 0; gap: 5px; flex: none; }
+  .row4 button { padding: 0; font-size: 17px; }
+  .row4 .foul-btn { font-size: 14px; }
+  .row-sub button { padding: 0; font-size: 14px; }
+  .counter { padding: 0 4px; display: flex; align-items: center; gap: 3px; border-radius: 8px; min-width: 0; }
+  .counter .lg { display: none; }
+  .counter .sh { display: inline; }
+  .row-sub .sub-btn { padding: 0; font-size: 14px; }
+  .counter > span { flex: 1; font-size: 9px; letter-spacing: .03em; line-height: 1.05; }
+  .counter > div { margin: 0; gap: 3px; }
+  .counters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .counter > span { min-width: 0; overflow: hidden; }
+  .counter b { font-size: 15px; min-width: 1em; text-align: center; }
+  .counter button { width: 22px; height: 22px; font-size: 13px; border-radius: 6px; flex: none; }
+  .t-bonus { position: static; font-size: 8px; padding: 0 3px; }
+  .players { flex: 1; min-height: 0; gap: .9vh; }
+  .oc { flex: 1 1 0; min-height: 0; padding: 0 7px; gap: 6px; border-radius: 9px; border-width: 2px;
+        grid-template-columns: 22px 24px 1fr auto auto; }
+  .oc .avatar { width: 22px; height: 22px; font-size: 8px; border-width: 1px; }
+  .oc .pnum { font-size: 14px; }
+  .oc .pname { font-size: 13px; }
+  .oc .pts, .oc .pf { font-size: 13px; }
+  .oc small { font-size: 8px; }
+  .oc.sel { box-shadow: none; }
+  .oc.empty-slot { padding: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .empty { padding: 6px; font-size: 12px; }
+
+  /* centro */
+  .periods { gap: 4px; flex: none; }
+  .periods button { padding: 0; font-size: 12px; }
+  .clock-box { padding: 0; border-radius: 10px; flex: none; }
+  .clock { line-height: 1.02; text-shadow: 0 0 12px rgba(251,191,36,.45); }
+  /* INICIAR en el medio y los ajustes a los costados, en una sola fila */
+  .clock-ctrl { display: grid; grid-template-columns: 1fr 1fr 2.6fr 1fr 1fr; gap: 4px; flex: none; }
+  .clock-ctrl .row5 { display: contents; }
+  .clock-ctrl .big-btn { order: 3; padding: 0; font-size: 15px; }
+  .clock-ctrl .row5 button { padding: 0; font-size: 11px; }
+  .clock-ctrl .row5 button:nth-child(1) { order: 1; }
+  .clock-ctrl .row5 button:nth-child(2) { order: 2; }
+  .clock-ctrl .row5 button:nth-child(4) { order: 4; }
+  .clock-ctrl .row5 button:nth-child(5) { order: 5; }
+  .shot-box { padding: 2px 8px; border-radius: 10px; gap: 8px; flex: none; }
+  .shot-box small { font-size: 7px; letter-spacing: .12em; }
+  .shot { line-height: 1; }
+  .shot-btns { grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 1; max-width: 230px; }
+  .shot-btns button { padding: 0; font-size: 13px; }
+  .poss { gap: 4px; flex: none; }
+  .poss button { padding: 0; font-size: 13px; }
+  .poss .swap { font-size: 12px; }
+  .mini-tools { display: grid; grid-template-columns: auto 1.25fr .8fr 1fr; gap: 4px; align-items: center; flex: none; }
+  .mini-tools button { padding: 0; font-size: 12px; height: 100%; }
+  .mini-conn { padding: 0 4px; }
+  #toast { bottom: 8px; font-size: 13px; }
+}
+
+/* Celular horizontal: equipo | reloj | equipo, ocupando el alto de la pantalla */
+@media (orientation: landscape) and (max-height: 560px) {
+  .grid { grid-template-columns: 1fr 1.02fr 1fr; align-items: stretch; }
+  .center { order: 0; grid-column: auto; }
+  .row4 button { height: 12vh; }
+  .row-sub button { height: 10vh; }
+  .counter { height: 10vh; }
+  .periods button { height: 8.5vh; }
+  .clock { font-size: 16vh; }
+  .clock-ctrl > * , .clock-ctrl .row5 button { height: 11vh; }
+  .shot { font-size: 11vh; }
+  .shot-btns button { height: 9.5vh; }
+  .poss button { height: 10vh; }
+  .mini-tools { height: 9.5vh; }
+}
+
+/* Celular vertical: reloj arriba y los dos equipos lado a lado abajo */
+@media (orientation: portrait) and (max-width: 640px) {
+  .grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; align-items: stretch; }
+  .center { grid-column: 1 / -1; order: -1; gap: .9vh; }
+  .t-head .t-name { font-size: 12px; }
+  .t-head { justify-content: space-between; }
+  .t-head .crest { width: 30px; height: 30px; font-size: 10px; }
+  .t-score { font-size: 32px; }
+  .row4 { grid-template-columns: repeat(4, 1fr); }
+  .row4 button { height: 6.2vh; font-size: 16px; }
+  .row4 .foul-btn { font-size: 11px; }
+  .row-sub { grid-template-columns: 1fr 44px; }
+  .row-sub button { height: 5.2vh; }
+  .counters { grid-template-columns: 1fr; gap: 4px; }
+  .counter { height: 4.6vh; }
+  .oc { grid-template-columns: 22px auto 1fr auto auto; padding: 0 5px; gap: 4px; }
+  .oc .pts, .oc .pf { font-size: 12px; }
+  .oc .pname { font-size: 12px; }
+  .periods button { height: 4.4vh; }
+  .clock { font-size: 8.5vh; }
+  .clock-ctrl > *, .clock-ctrl .row5 button { height: 5.6vh; }
+  .shot { font-size: 5.4vh; }
+  .shot-btns button { height: 4.8vh; }
+  .poss button { height: 5vh; }
+  .mini-tools { height: 4.6vh; }
+}
+
+/* Ventanas (cambio y menú) en celular: suplentes en grilla, todo a la vista */
+@media (orientation: landscape) and (max-height: 560px), (orientation: portrait) and (max-width: 640px) {
+  dialog { max-height: 96vh; }
+  #dlg-sub { width: min(780px, 97vw); }
+  .sub-box { padding: 10px; gap: 6px; }
+  .sub-box h2 { font-size: 15px; }
+  .sub-out { padding: 5px 8px; gap: 8px; font-size: 13px; }
+  .sub-out .avatar { width: 26px; height: 26px; font-size: 9px; }
+  .sub-label { font-size: 13px; }
+  .bench { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; max-height: none; overflow: visible; }
+  .bench-p { grid-template-columns: 26px auto 1fr; gap: 6px; padding: 6px 8px; }
+  .bench-p .avatar { width: 26px; height: 26px; font-size: 9px; }
+  .bench-p .pnum { font-size: 14px; }
+  .bench-p .pname { font-size: 13px; }
+  .bench-p .muted { grid-column: 1 / -1; font-size: 10px; }
+  .sub-box .dlg-actions button { padding: 6px 10px; font-size: 13px; }
+  #dlg-menu { width: min(560px, 96vw); }
+  .menu-box { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; }
+  .menu-box .cb-brand { grid-column: 1 / -1; margin: 0 0 2px; }
+  .menu-box .cb-brand .cb-logo { height: 34px; }
+  .menu-box .cb-brand .cb-sep { height: 26px; }
+  .menu-box .cb-brand b { font-size: 16px; }
+  .menu-box .btn, .menu-box button { padding: 10px; font-size: 14px; }
+  .menu-box [data-close] { grid-column: 1 / -1; justify-content: center; text-align: center; }
+}
+@media (orientation: portrait) and (max-width: 640px) {
+  .bench { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .menu-box { grid-template-columns: 1fr; }
+}

@@ -36,10 +36,11 @@
       <button data-a="period" data-n="5" id="btn-ot">OT</button>
     </div>
 
-    <div class="clock-box">
+    <div class="clock-box" id="clock-box" title="Tocar para fijar el tiempo">
       <div class="period-label" id="period-label">CUARTO 1</div>
       <div class="clock" id="clock">8:00</div>
     </div>
+    <div class="clock-ctrl">
     <button class="big-btn" id="btn-clock" data-a="clockToggle" title="Barra espaciadora">▶ INICIAR</button>
     <div class="row5">
       <button data-a="clockAdjust" data-ms="-10000">−10s</button>
@@ -47,6 +48,7 @@
       <button id="edit-clock" title="Fijar tiempo">✎</button>
       <button data-a="clockAdjust" data-ms="1000">+1s</button>
       <button data-a="clockAdjust" data-ms="10000">+10s</button>
+    </div>
     </div>
 
     <div class="shot-box">
@@ -64,6 +66,14 @@
       <button data-a="possession" data-team="home" id="poss-home">◀</button>
       <button data-a="swapPossession" class="swap" title="P">⇄ Cambio + 24</button>
       <button data-a="possession" data-team="away" id="poss-away">▶</button>
+    </div>
+
+    <!-- Solo en celular: lo que en la PC está en la barra de arriba -->
+    <div class="mini-tools">
+      <span class="conn mini-conn" id="conn2"><i></i></span>
+      <button data-a="undo">↶ Deshacer</button>
+      <button data-a="buzzer" class="warn">📢</button>
+      <button id="open-menu">☰ Menú</button>
     </div>
 
     <div class="log"><div class="log-head">Registro del partido</div><ol id="log"></ol></div>
@@ -85,6 +95,18 @@
       <span></span>
       <button type="button" data-close>Cancelar</button>
     </div>
+  </div>
+</dialog>
+
+<!-- Menú (celular) -->
+<dialog id="dlg-menu">
+  <div class="menu-box">
+    <div class="cb-brand"><img class="cb-logo" src="/img/cumulo-logo.png" alt="Cúmulo Ingeniería"><i class="cb-sep"></i><div><b>Cúmulo Hoops</b><small>Mesa de control</small></div></div>
+    <a class="btn" href="/nomina">📋 Nómina y formaciones</a>
+    <a class="btn" href="/estadisticas">📊 Estadísticas</a>
+    <a class="btn" href="/">📱 Conectar pantallas</a>
+    <button type="button" id="menu-config">⚙ Partido (título, minutos, nuevo partido)</button>
+    <button type="button" data-close>Cerrar</button>
   </div>
 </dialog>
 

@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
@@ -23,6 +24,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
@@ -51,6 +53,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var toggle: Button
     private lateinit var battery: Button
+    private lateinit var bar: LinearLayout
     private val handler = Handler(Looper.getMainLooper())
     private var pageLoaded = false
     private var lastIp: String? = null
@@ -73,7 +76,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(BG)
         }
-        val bar = LinearLayout(this).apply {
+        bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(BAR)
@@ -120,6 +123,11 @@ class MainActivity : Activity() {
 
                 override fun onPageFinished(view: WebView, url: String) {
                     pageLoaded = url.startsWith("http://127.0.0.1")
+                    updateChrome(url)
+                }
+
+                override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+                    updateChrome(url)
                 }
 
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -249,6 +257,46 @@ class MainActivity : Activity() {
                 try { startActivity(Intent.createChooser(send, getString(R.string.share_title))) } catch (_: Exception) { }
             }
         }
+    }
+
+    // ------------------------------------------------------------------ pantalla completa
+    /**
+     * En la página Conectar se ve la barra de la app (estado, Hotspot, Batería, Detener).
+     * En las demás (mesa de control, nómina, etc.) se oculta para dejarle todo el espacio
+     * a la página, y con el celular horizontal también se ocultan las barras del sistema
+     * (se muestran deslizando desde el borde). Con "atrás" se vuelve a Conectar.
+     */
+    private fun updateChrome(url: String?) {
+        val u = url ?: return
+        val local = u.startsWith("http://127.0.0.1")
+        val path = Uri.parse(u).path.orEmpty()
+        val home = !local || path.isEmpty() || path == "/"
+        bar.visibility = if (home) View.VISIBLE else View.GONE
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        setImmersive(!home && landscape)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun setImmersive(on: Boolean) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val c = window.insetsController ?: return
+            if (on) {
+                c.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                c.hide(WindowInsets.Type.systemBars())
+            } else {
+                c.show(WindowInsets.Type.systemBars())
+            }
+        } else {
+            window.decorView.systemUiVisibility = if (on) {
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            } else View.SYSTEM_UI_FLAG_VISIBLE
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateChrome(web.url)
     }
 
     @Deprecated("Navegación hacia atrás dentro de las páginas")

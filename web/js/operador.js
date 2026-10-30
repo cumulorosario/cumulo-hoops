@@ -33,9 +33,9 @@
       <button data-a="score" data-pts="-1" data-sel class="ghost" title="Corrige un punto del jugador seleccionado">−1</button>
     </div>
     <div class="counters">
-      <div class="counter"><span>Faltas equipo</span><em class="t-bonus">BONUS</em>
+      <div class="counter"><span>Faltas<i class="lg"> equipo</i></span><em class="t-bonus">BONUS</em>
         <div><button data-a="foul" data-delta="-1">−</button><b class="t-fouls">0</b><button data-a="foul" data-delta="1">+</button></div></div>
-      <div class="counter"><span>Tiempos muertos</span>
+      <div class="counter"><span><i class="lg">Tiempos muertos</i><i class="sh">Tiempos</i></span>
         <div><button data-a="timeout" data-delta="-1">−</button><b class="t-to">0</b><button data-a="timeout" data-delta="1">+</button></div></div>
     </div>
     <div class="pl-head"><span>En cancha · tocá para seleccionar</span><span class="t-oncourt"></span></div>
@@ -231,6 +231,13 @@
     quiet(send('clockSet', { ms }));
   });
 
+  // Tocar el reloj también permite fijarlo (en el celular no hay lugar para el botón ✎)
+  $('clock-box').addEventListener('click', () => $('edit-clock').click());
+
+  // ---------- menú (celular)
+  $('open-menu').addEventListener('click', () => $('dlg-menu').showModal());
+  $('menu-config').addEventListener('click', () => { $('dlg-menu').close(); $('open-config').click(); });
+
   // ---------- atajos de teclado
   document.addEventListener('keydown', (e) => {
     if (document.querySelector('dialog[open]') || e.target.matches('input, textarea, select')) return;
@@ -280,6 +287,7 @@
 
   H.connect(render, (ok) => {
     $('conn').classList.toggle('ok', ok);
+    $('conn2').classList.toggle('ok', ok);
     $('conn').querySelector('span').textContent = ok ? 'En vivo' : 'Sin conexión';
   }, 'operador');
 })();
